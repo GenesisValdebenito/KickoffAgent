@@ -1,0 +1,20 @@
+# Archivos de entorno
+.env
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Base de datos ChromaDB
+chroma_langchain_db/
+chroma.sqlite3
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
