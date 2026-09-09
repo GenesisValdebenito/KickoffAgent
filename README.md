@@ -1,59 +1,72 @@
-# KickoffAgent
+# AI Project Copilot 🤖💼
 
-Evaluación Parcial N°1 — Desarrollo de Agentes Inteligentes con LLM (DuocUC)
+**AI Project Copilot** es un agente inteligente diseñado para firmas de consultoría tecnológica e ingeniería de software. Su objetivo principal es asistir en la evaluación estratégica de proyectos TI mediante el análisis automatizado de requerimientos de software y la evaluación de viabilidad financiera.
 
-**Plataforma de agentes inteligentes que guía el levantamiento de antecedentes de un proyecto de software, sistematiza su análisis de viabilidad preliminar (FODA/PESTEL), lo traduce automáticamente en un backlog ágil ejecutable, y permite consultarlo todo por chat de forma trazable (RAG).**
+Este proyecto fue desarrollado como parte de la evaluación **"Diseño de solución con LLM y RAG"**, integrando capacidades avanzadas de Prompt Engineering, Recuperación Aumentada por Generación (RAG) y Tool Calling (Uso de herramientas).
 
-Inspirado en cómo plataformas de cumplimiento normativo (p. ej. [Dani](https://github.com/EliasVicencio19/Dani-ISO27001), para ISO 27001) usan agentes de IA para transformar un levantamiento estructurado en documentación formal y en un repositorio consultable — aplicamos el mismo patrón al dominio de formulación y evaluación de proyectos de software.
+---
 
-## Pipeline (3 etapas, 2 agentes + RAG)
+## 🚀 Características Principales
 
-1. **Agente de Levantamiento** — el usuario responde un cuestionario (antecedentes, partes interesadas, problema/oportunidad) y sube evidencia de apoyo (entrevistas, benchmarking). El agente sistematiza esto en un análisis **FODA + PESTEL** y clasifica automáticamente la evidencia por categoría.
-2. **Agente Generador de Backlog** — toma el documento de Antecedentes + Necesidades, extrae RF/RNF y genera **épicas → historias de usuario → tareas → sprints**.
-3. **Módulo RAG** — indexa el análisis, la evidencia y el backlog para que cualquier interesado consulte el proyecto por chat, con respuestas ancladas en evidencia real y citas trazables.
+1. **Análisis de Requerimientos (RAG):**
+   - Capacidad de ingerir y leer documentación estructurada (Actas de reunión, Especificaciones Técnicas IEEE 830).
+   - Extrae requerimientos funcionales y no funcionales, transformándolos automáticamente en formato de **Historias de Usuario**.
+   - Búsqueda semántica usando base de datos vectorial local.
 
-## Por qué está diseñado así
+2. **Evaluación de Viabilidad Financiera (Tool Calling):**
+   - Extrae automáticamente variables financieras clave desde actas de proyecto (Inversión inicial, Flujos de caja proyectados, Tasa de descuento).
+   - Utiliza una herramienta matemática determinista (`numpy-financial`) para calcular con 100% de precisión métricas como: **VAN** (Valor Actual Neto), **TIR** (Tasa Interna de Retorno), **ROI** y **PRI**.
+   - Formula una recomendación técnica formal sobre la rentabilidad de la inversión.
 
-Un sistema RAG conversacional por sí solo responde preguntas, pero no **ejecuta** ninguna tarea — no es un agente. El núcleo de PlanAgiDev son los dos agentes que transforman información (levantamiento → análisis, análisis → backlog); el RAG se mantiene como módulo de soporte (consulta y trazabilidad), no como el corazón del sistema. Ver el detalle completo de esta decisión en `docs/informe-tecnico.docx`.
+3. **Orquestación de Agentes con LangGraph:**
+   - Toma de decisiones autónoma: El modelo LLM decide, basado en la consulta del usuario, si debe invocar la búsqueda documental (RAG) o la calculadora financiera, manteniendo el contexto de la conversación.
 
-## Estructura del repositorio
+---
 
+## 🏗️ Arquitectura Técnica
+
+- **Modelo LLM Principal:** Groq (`qwen/qwen3.8-27b`) por su bajísima latencia e inferencia rápida.
+- **Embeddings:** `FastEmbed` (`BAAI/bge-small-en-v1.5`), ejecutado localmente sin dependencias pesadas como PyTorch, garantizando velocidad y compatibilidad en Windows.
+- **Base de Datos Vectorial:** ChromaDB (Persistente local).
+- **Framework de Agentes:** LangChain / LangGraph (`create_agent`).
+
+---
+
+## ⚙️ Instalación y Uso
+
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/GenesisValdebenito/KickoffAgent.git
+cd KickoffAgent
 ```
-proyecto/
-├── README.md
-├── docs/
-│   └── informe-tecnico.docx     # Informe técnico completo (contexto, objetivos,
-│                                  #   prompts, arquitectura, restricciones, referencias APA)
-├── diagramas/
-│   ├── arquitectura_v3.png      # Diagrama de arquitectura (pipeline de 3 etapas)
-│   └── gen_diagrama_v3.py       # Script que genera el diagrama
-├── prompts/
-│   ├── 00_levantamiento_foda_pestel.md
-│   ├── 01_extraccion_rf_rnf.md
-│   ├── 02_generacion_backlog.md
-│   └── 03_rag_respuesta.md
-├── src/
-│   ├── agente_backlog/          # Lógica de generación de backlog
-│   ├── rag/                     # Pipeline RAG (index, embeddings, retriever)
-│   └── api/                     # Endpoints de la aplicación
-└── tests/
+
+### 2. Instalar dependencias
+Es altamente recomendado utilizar un entorno virtual (venv).
+```bash
+pip install -r requirements.txt
 ```
 
-## Alcance del MVP (primera entrega)
+### 3. Configurar variables de entorno
+Crea un archivo llamado `.env` en la raíz del proyecto y agrega tu API Key de Groq:
+```env
+GROQ_API_KEY=tu_clave_api_aqui
+```
+> **Nota:** El archivo `.env` está ignorado por git por seguridad. Nunca subas tus contraseñas al repositorio público.
 
-- ✅ Levantamiento de información y evaluación preliminar (FODA + PESTEL)
-- ✅ Formulación ágil (backlog generado por agente)
-- ✅ RAG de consulta con trazabilidad (Faithfulness / Answer Relevancy)
-- 🔜 Roadmap: estudio financiero (VAN, TIR, PRI, ROI), estudios técnico/mercado/organizacional, integraciones externas (Git, Jira)
+### 4. Ejecutar el Agente
+Para iniciar las pruebas del agente (Requerimientos IEEE 830 y Evaluación Financiera):
+```bash
+python agent_project_copilot.py
+```
 
-## Estado actual
+---
 
-- [x] Propuesta revisada y aprobada por el docente
-- [x] Informe técnico
-- [x] Diagrama de arquitectura
-- [x] Prompts diseñados y justificados (0, 1, 2, 3)
-- [ ] Implementación del Agente de Levantamiento
-- [ ] Implementación del Agente Generador de Backlog
-- [ ] Implementación del pipeline RAG
-- [ ] Métricas de calidad (Faithfulness / Answer Relevancy)
-- [ ] Defensa oral
+## 📄 Requisitos del Proyecto (Rúbrica Evaluativa)
+Este repositorio cumple con los siguientes entregables de evaluación:
+- [x] Formulación y justificación de prompts optimizados (`system_prompt` con reglas estrictas).
+- [x] Diseño e implementación de un pipeline RAG local.
+- [x] Integración de herramientas de recuperación (Tool Calling) y control de contexto conversacional (Grafo de estado).
+- [x] Implementación sobre un caso de uso organizacional real (Consultoría TI).
+
+---
+*Desarrollado para el módulo de Desarrollo de Agentes Inteligentes con LLM.*
