@@ -1,4 +1,26 @@
 import os
+import sys
+from pathlib import Path
+
+# Configurar salida estándar a UTF-8 para evitar errores de codificación en Windows (cp1252)
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+# Definición de rutas base del proyecto (resueltas desde src/)
+BASE_DIR = Path(__file__).resolve().parent.parent
+DOCS_DIR = BASE_DIR / "docs"
+PROMPTS_DIR = BASE_DIR / "prompts"
+ENV_PATH = BASE_DIR / ".env"
+
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
+console = Console()
+
 from dotenv import load_dotenv
 from typing import List, Optional
 import numpy_financial as npf
@@ -6,7 +28,14 @@ from pydantic import BaseModel, Field
 
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+try:
+    # pyrefly: ignore [missing-import]
+    from langchain_fastembed import FastEmbedEmbeddings
+except ImportError:
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -15,8 +44,8 @@ from langchain.agents import create_agent
 # ==============================================================================
 # CONFIGURACIÓN DE LLM Y MODELOS
 # ==============================================================================
-# Cargar variables de entorno (API Key)
-load_dotenv()
+# Cargar variables de entorno desde la raíz del proyecto
+load_dotenv(dotenv_path=ENV_PATH)
 # os.environ["GROQ_API_KEY"] debe estar definido en el archivo .env
 llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=800)
 embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
@@ -94,8 +123,11 @@ def inicializar_vectorstore(pdf_paths: Optional[List[str]] = None) -> Chroma:
     # Si se pasan rutas de PDF reales, se cargan; si no, se usan datos sintéticos de demostración
     if pdf_paths:
         for path in pdf_paths:
-            if os.path.exists(path):
-                loader = PyPDFLoader(path)
+            file_path = Path(path)
+            if not file_path.is_absolute():
+                file_path = BASE_DIR / path
+            if file_path.exists():
+                loader = PyPDFLoader(str(file_path))
                 docs.extend(loader.load())
     
     # Chunking jerárquico optimizado para mantener contexto
@@ -128,7 +160,7 @@ def inicializar_vectorstore(pdf_paths: Optional[List[str]] = None) -> Chroma:
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
-        collection_name="project_copilot_knowledge"
+        collection_name="kickoff_agent_knowledge"
     )
     return vectorstore
 
@@ -157,7 +189,7 @@ def consultar_documentacion_proyecto(consulta: str) -> str:
 
 tools = [consultar_documentacion_proyecto, calcular_metricas_financieras]
 
-system_prompt = """Eres 'AI Project Copilot', un asistente senior de consultoría e ingeniería de software.
+system_prompt = """Eres 'KickoffAgent', un asistente senior de consultoría e ingeniería de software.
 Tu misión es guiar la planificación estratégica, viabilidad financiera y levantamiento de requerimientos bajo IEEE 830.
 
 REGLAS DE OPERACIÓN ESTRICTAS:
@@ -175,13 +207,55 @@ agent_executor = create_agent(model=llm, tools=tools, system_prompt=system_promp
 # ==============================================================================
 
 if __name__ == "__main__":
-    print("\n--- TEST 1: CONSULTA DE REQUERIMIENTOS CON RAG ---")
+    console.print()
+    console.print(Panel("[bold cyan]KickoffAgent[/bold cyan] — Agente Inteligente de Formulación de Proyectos", border_style="cyan"))
+    console.print()
+
+    # --- TEST 1: CONSULTA DE REQUERIMIENTOS CON RAG ---
     query_req = "¿Cuáles son los requerimientos funcionales aprobados y en qué documento se basan?"
     res_req = agent_executor.invoke({"messages": [("user", query_req)]})
-    print("\nRespuesta:\n", res_req["messages"][-1].content)
+    resp_req_text = res_req["messages"][-1].content
+    console.print(Panel(Markdown(resp_req_text), title="TEST 1 — Consulta RAG", border_style="cyan"))
 
-    print("\n--- TEST 2: EVALUACIÓN FINANCIERA AUTOMATIZADA CON TOOL CALLING ---")
+    console.print()
+    console.rule("[bold cyan]────────────────────────────────────────────────────────────[/bold cyan]")
+    console.print()
+
+    # --- TEST 2: EVALUACIÓN FINANCIERA AUTOMATIZADA CON TOOL CALLING ---
     query_fin = "Revisa los documentos del proyecto, busca los datos de inversión y evalúa si es viable financieramente."
     res_fin = agent_executor.invoke({"messages": [("user", query_fin)]})
-    print("\nRespuesta:\n", res_fin["messages"][-1].content)
-    
+    resp_fin_text = res_fin["messages"][-1].content
+    console.print(Panel(Markdown(resp_fin_text), title="TEST 2 — Evaluación Financiera", border_style="green"))
+    console.print()
+
+    # ==============================================================================
+    # 5. MODO INTERACTIVO
+    # ==============================================================================
+    console.rule("[bold yellow]Modo Interactivo[/bold yellow]")
+    console.print()
+    console.print(Panel("Modo interactivo — escribe tu consulta o 'salir' para terminar", border_style="yellow"))
+    console.print()
+
+    while True:
+        try:
+            query = console.input("[bold yellow]> Consulta:[/bold yellow] ")
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[cyan]Sesión cerrada.[/cyan]")
+            break
+
+        clean_query = query.strip()
+        if clean_query.lower() in ["salir", "exit"]:
+            console.print("[cyan]Sesión cerrada.[/cyan]")
+            break
+
+        if not clean_query:
+            continue
+
+        try:
+            res = agent_executor.invoke({"messages": [("user", clean_query)]})
+            respuesta = res["messages"][-1].content
+            console.print()
+            console.print(Panel(Markdown(respuesta), title="KickoffAgent", border_style="cyan"))
+            console.print()
+        except Exception as e:
+            console.print(f"[red]Error al procesar la consulta: {e}[/red]")
