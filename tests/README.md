@@ -77,18 +77,25 @@ Para finalizar la sesión interactiva en cualquier momento, basta con escribir `
 1. **Consulta de Requerimientos (RAG):**
    - `> Consulta: ¿Cuáles son los requerimientos funcionales del proyecto?`
    - *Propósito:* Demuestra la extracción estructurada bajo IEEE 830 y el formato de Historias de Usuario (*Como / Quiero / Para*).
+   ![alt text](test_01.png)
 
 2. **Evaluación de Viabilidad Financiera (Tool Calling):**
    - `> Consulta: ¿Es viable financieramente el proyecto?`
    - *Propósito:* Evidencia cómo el LLM recupera las variables del acta y ejecuta `calcular_metricas_financieras` (`numpy-financial`) sin alucinar números.
+   ![alt text](test_02.png)
 
 3. **Trazabilidad y Cita de Fuentes Documentales:**
    - `> Consulta: ¿Qué dice el acta de reunión sobre el presupuesto?`
    - *Propósito:* Valida el grounding estricto, la extracción de los $12.000.000 CLP y la cita formal a `[Acta_Reunion_01.pdf]`.
+   ![alt text](test_03.png)
 
 4. **Pregunta fuera de contexto (Respuesta de rechazo / Anti-alucinación):**
    - `> Consulta: ¿Cuál es el presupuesto de marketing para redes sociales?`
-   - *Propósito:* Demuestra la regla de rechazo formal (*Refusal answer*), donde el agente se niega a inventar información ausente en la base de conocimiento.
+   - *Propósito:* Demuestra la regla de rechazo formal (*Refusal answer*), donde el agente se niega a inventar información ausente en la base de conocimiento. Asi también sugiere documentos relacionados con el proyecto, para dar más contexto.
+    *Ejemplo 1*
+   ![alt text](test_04-1.png)
+   - *Ejemplo 2*
+   ![alt text](test_04-2.png)
 
 ---
 
