@@ -54,99 +54,18 @@ groq_api_key = os.environ.get("GROQ_API_KEY") or "dummy_key_for_testing"
 llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=800, api_key=groq_api_key)
 embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
-# ==============================================================================
-# 1. HERRAMIENTAS FINANCIERAS DETERMINISTAS (ZERO ALUCINACIONES)
-# ==============================================================================
-
-class FinancialEvalInput(BaseModel):
-    inversion_inicial: float = Field(
-        description="Inversión inicial requerida para el proyecto (valor positivo)."
-    )
-    flujos_caja: List[float] = Field(
-        description="Lista secuencial de flujos netos proyectados por periodo (ej. años)."
-    )
-    tasa_descuento: float = Field(
-        description="Tasa de descuento anual en formato decimal (ej: 0.12 para 12%)."
-    )
-
-@tool(args_schema=FinancialEvalInput)
-def calcular_metricas_financieras(
-    inversion_inicial: float,
-    flujos_caja: List[float],
-    tasa_descuento: float
-) -> dict:
-    """Calcula determinísticamente el VAN (NPV), TIR (IRR), ROI y Período de Recuperación (PRI).
-    Úsalo obligatoriamente siempre que se requiera evaluar la viabilidad financiera de un proyecto."""
-    
-    # Serie de flujo de fondos con el egreso inicial en negativo
-    cash_flows = [-abs(inversion_inicial)] + flujos_caja
-    
-    # 1. VAN (Valor Actual Neto)
-    van = npf.npv(tasa_descuento, cash_flows)
-    
-    # 2. TIR (Tasa Interna de Retorno)
-    try:
-        tir = npf.irr(cash_flows)
-        tir_pct = f"{round(tir * 100, 2)}%" if tir is not None else "No calculable"
-    except Exception:
-        tir_pct = "No convergente"
-
-    # 3. ROI simple
-    beneficio_neto = sum(flujos_caja) - abs(inversion_inicial)
-    roi = (beneficio_neto / abs(inversion_inicial)) * 100
-
-    # 4. Periodo de Recuperación de Inversión (PRI) no descontado
-    acumulado = -abs(inversion_inicial)
-    pri_periodos = "Supera el horizonte evaluado"
-    for i, f in enumerate(flujos_caja, start=1):
-        acumulado += f
-        if acumulado >= 0:
-            pri_periodos = f"{i} periodos"
-            break
-
-    return {
-        "inversion_inicial": inversion_inicial,
-        "van": round(float(van), 2),
-        "tir": tir_pct,
-        "roi_porcentual": f"{round(roi, 2)}%",
-        "pri_estimado": pri_periodos,
-        "conclusion_tecnica": (
-            "Proyecto Financieramente Viable (VAN > 0)" if van > 0 
-            else "Proyecto No Viable según criterio de VAN (VAN <= 0)"
-        )
-    }
+# Importación de herramientas modulares desde src/tools.py (estilo canónico del curso)
+from src.tools import (
+    calcular_metricas_financieras,
+    guardar_informe_kickoff,
+    sumar,
+    restar,
+    multiplicar,
+    dividir
+)
 
 # ==============================================================================
-# 2. HERRAMIENTA DE ESCRITURA Y PERSISTENCIA (FORMALIZACIÓN ORGANIZACIONAL)
-# ==============================================================================
-
-class GuardarInformeInput(BaseModel):
-    nombre_archivo: str = Field(
-        description="Nombre del archivo a crear con extension .md o .txt (ej: 'dictamen_kickoff.md')."
-    )
-    contenido_markdown: str = Field(
-        description="Contenido completo del informe formal en formato Markdown a guardar."
-    )
-
-@tool(args_schema=GuardarInformeInput)
-def guardar_informe_kickoff(nombre_archivo: str, contenido_markdown: str) -> str:
-    """Guarda formalmente el informe final de viabilidad o especificacion técnica IEEE 830
-    en el directorio de salida del proyecto (output/). Utilízalo cuando el usuario pida
-    generar, formalizar, guardar o exportar el documento del proyecto."""
-    try:
-        # Sanitizar nombre de archivo básico
-        clean_name = Path(nombre_archivo).name
-        if not (clean_name.endswith(".md") or clean_name.endswith(".txt")):
-            clean_name += ".md"
-        
-        target_path = OUTPUT_DIR / clean_name
-        target_path.write_text(contenido_markdown, encoding="utf-8")
-        return f"Informe guardado exitosamente en: {target_path}"
-    except Exception as e:
-        return f"Error al guardar el informe: {str(e)}"
-
-# ==============================================================================
-# 3. PIPELINE RAG (INGESTA, CHUNKING Y VECTOR STORE - MEMORIA LARGO PLAZO)
+# 2. PIPELINE RAG (INGESTA, CHUNKING Y VECTOR STORE - MEMORIA LARGO PLAZO)
 # ==============================================================================
 
 def inicializar_vectorstore(pdf_paths: Optional[List[str]] = None) -> Chroma:
@@ -226,11 +145,15 @@ from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langchain_core.messages import SystemMessage
 
-# 1. Integración de herramientas
+# 1. Integración de herramientas: consulta documental, finanzas, persistencia y aritmética
 tools = [
     consultar_documentacion_proyecto,
     calcular_metricas_financieras,
-    guardar_informe_kickoff
+    guardar_informe_kickoff,
+    sumar,
+    restar,
+    multiplicar,
+    dividir
 ]
 
 # Vincular las herramientas al LLM (Tool Binding)
@@ -240,29 +163,13 @@ llm_with_tools = llm.bind_tools(tools)
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
 
-# 3. Prompt de Sistema con Estrategia de Planificación
-system_prompt_text = """Eres 'KickoffAgent', un agente senior de consultoría estratégica e ingeniería de software.
-Tu misión es guiar la planificación estratégica, viabilidad financiera y levantamiento de requerimientos bajo estándar IEEE 830.
-
-ESTRATEGIA DE PLANIFICACIÓN Y TOMA DE DECISIONES ADAPTATIVAS:
-Ante solicitudes complejas u organizacionales de evaluación de proyecto ("Kickoff completo", "Evaluación integral", etc.), ejecuta un esquema secuencial priorizado en 3 etapas:
-  - ETAPA 1 (Levantamiento y Consulta): Invoca 'consultar_documentacion_proyecto' para extraer alcance, requerimientos funcionales/no funcionales y parámetros presupuestarios.
-  - ETAPA 2 (Análisis y Razonamiento Determinista): Si hay datos de inversión y flujos, invoca obligatoriamente 'calcular_metricas_financieras' para determinar VAN, TIR, ROI y PRI.
-  - ETAPA 3 (Formalización y Escritura): Sintetiza el dictamen final y, si el usuario lo solicita o se trata de un informe formal, utiliza 'guardar_informe_kickoff' para persistir el acta en disco.
-
-REGLAS DE OPERACIÓN ESTRICTAS:
-1. Grounding y Citas: Responde basándote en los documentos recuperados mediante 'consultar_documentacion_proyecto'. Cita siempre el documento fuente (ej: [Acta_Reunion_01.pdf]).
-2. Rigor Matemático: NUNCA calcules el VAN, TIR o flujos de caja probabilísticamente. Delega siempre el cálculo en 'calcular_metricas_financieras'.
-3. Continuidad Conversacional: Utiliza la memoria de la conversación para responder con coherencia a preguntas de seguimiento del usuario sin repetir pasos innecesarios.
-4. Formato de Salida:
-   - Para requerimientos: Estructura en Historias de Usuario (Como / Quiero / Para).
-   - Para finanzas: Entrega una tabla comparativa clara con VAN, TIR, ROI y la recomendación técnica formal.
-"""
+# 3. Prompt de Sistema Modular (Estrategia de Planificación y Reglas)
+from src.prompts import AGENT_SYSTEM_PROMPT
 
 # 4. Nodos del Grafo
 def call_model(state: AgentState) -> AgentState:
     """Nodo 'agent': invoca al LLM inyectando el system prompt y la historia de mensajes."""
-    system = SystemMessage(content=system_prompt_text)
+    system = SystemMessage(content=AGENT_SYSTEM_PROMPT)
     response = llm_with_tools.invoke([system] + state["messages"])
     return {"messages": [response]}
 

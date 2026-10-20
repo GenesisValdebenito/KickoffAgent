@@ -1,10 +1,18 @@
 import pytest
 import numpy_financial as npf
 from src.kickoff_agent import (
-    calcular_metricas_financieras,
     inicializar_vectorstore,
     consultar_documentacion_proyecto,
     agent_executor
+)
+from src.tools import (
+    calcular_metricas_financieras,
+    guardar_informe_kickoff,
+    sumar,
+    restar,
+    multiplicar,
+    dividir,
+    OUTPUT_DIR
 )
 
 def test_herramienta_financiera_van_positivo():
@@ -104,3 +112,11 @@ def test_continuidad_memoria_corto_plazo():
     
     respuesta_2 = res_turno_2["messages"][-1].content
     assert "Cóndor" in respuesta_2 or "Condor" in respuesta_2
+
+def test_operaciones_aritmeticas_basicas():
+    """Valida las tools aritméticas modulares (estilo canónico Clase 3.1)."""
+    assert sumar.invoke({"a": 15.0, "b": 25.0}) == 40.0
+    assert restar.invoke({"a": 100.0, "b": 35.0}) == 65.0
+    assert multiplicar.invoke({"a": 6.0, "b": 7.0}) == 42.0
+    assert dividir.invoke({"a": 50.0, "b": 2.0}) == 25.0
+    assert "Error: no se puede dividir entre cero" in str(dividir.invoke({"a": 10.0, "b": 0.0}))
