@@ -50,7 +50,11 @@ def test_consultar_documentacion_tool():
     assert "12.000.000" in salida
 
 def test_orquestador_ejecucion_mensajes():
-    """Valida que el agente orquestador reciba mensajes y genere una respuesta coherente."""
+    """Valida que el agente orquestador responda si hay API key configurada."""
+    import os
+    if not os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY").startswith("tu_clave"):
+        pytest.skip("GROQ_API_KEY no configurada en este entorno (ej. CI sin Secret)")
+    
     respuesta = agent_executor.invoke({"messages": [("user", "Hola, preséntate brevemente y di qué rol tienes.")]})
     mensajes = respuesta.get("messages", [])
     assert len(mensajes) >= 2

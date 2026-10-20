@@ -46,8 +46,8 @@ from langchain.agents import create_agent
 # ==============================================================================
 # Cargar variables de entorno desde la raíz del proyecto
 load_dotenv(dotenv_path=ENV_PATH)
-# os.environ["GROQ_API_KEY"] debe estar definido en el archivo .env
-llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=800)
+groq_api_key = os.environ.get("GROQ_API_KEY") or "dummy_key_for_testing"
+llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=800, api_key=groq_api_key)
 embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 # ==============================================================================
