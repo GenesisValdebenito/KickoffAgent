@@ -13,7 +13,11 @@ if sys.platform == "win32":
 BASE_DIR = Path(__file__).resolve().parent.parent
 DOCS_DIR = BASE_DIR / "docs"
 PROMPTS_DIR = BASE_DIR / "prompts"
+OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 ENV_PATH = BASE_DIR / ".env"
+
+from langgraph.checkpoint.memory import MemorySaver
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -113,7 +117,36 @@ def calcular_metricas_financieras(
     }
 
 # ==============================================================================
-# 2. PIPELINE RAG (INGESTA, CHUNKING Y VECTOR STORE)
+# 2. HERRAMIENTA DE ESCRITURA Y PERSISTENCIA (FORMALIZACIÓN ORGANIZACIONAL)
+# ==============================================================================
+
+class GuardarInformeInput(BaseModel):
+    nombre_archivo: str = Field(
+        description="Nombre del archivo a crear con extension .md o .txt (ej: 'dictamen_kickoff.md')."
+    )
+    contenido_markdown: str = Field(
+        description="Contenido completo del informe formal en formato Markdown a guardar."
+    )
+
+@tool(args_schema=GuardarInformeInput)
+def guardar_informe_kickoff(nombre_archivo: str, contenido_markdown: str) -> str:
+    """Guarda formalmente el informe final de viabilidad o especificacion técnica IEEE 830
+    en el directorio de salida del proyecto (output/). Utilízalo cuando el usuario pida
+    generar, formalizar, guardar o exportar el documento del proyecto."""
+    try:
+        # Sanitizar nombre de archivo básico
+        clean_name = Path(nombre_archivo).name
+        if not (clean_name.endswith(".md") or clean_name.endswith(".txt")):
+            clean_name += ".md"
+        
+        target_path = OUTPUT_DIR / clean_name
+        target_path.write_text(contenido_markdown, encoding="utf-8")
+        return f"Informe guardado exitosamente en: {target_path}"
+    except Exception as e:
+        return f"Error al guardar el informe: {str(e)}"
+
+# ==============================================================================
+# 3. PIPELINE RAG (INGESTA, CHUNKING Y VECTOR STORE - MEMORIA LARGO PLAZO)
 # ==============================================================================
 
 def inicializar_vectorstore(pdf_paths: Optional[List[str]] = None) -> Chroma:
@@ -184,26 +217,90 @@ def consultar_documentacion_proyecto(consulta: str) -> str:
     return "\n\n".join(resultado)
 
 # ==============================================================================
-# 3. CONSTRUCCIÓN DEL AGENTE ORQUESTADOR
+# 4. CONSTRUCCIÓN DEL AGENTE ORQUESTADOR CON LANGGRAPH (ESTRUCTURA DE NODOS Y ARISTAS)
 # ==============================================================================
 
-tools = [consultar_documentacion_proyecto, calcular_metricas_financieras]
+from typing import TypedDict, Annotated
+from langgraph.graph import StateGraph, END
+from langgraph.prebuilt import ToolNode
+from langgraph.graph.message import add_messages
+from langchain_core.messages import SystemMessage
 
-system_prompt = """Eres 'KickoffAgent', un asistente senior de consultoría e ingeniería de software.
-Tu misión es guiar la planificación estratégica, viabilidad financiera y levantamiento de requerimientos bajo IEEE 830.
+# 1. Integración de herramientas
+tools = [
+    consultar_documentacion_proyecto,
+    calcular_metricas_financieras,
+    guardar_informe_kickoff
+]
+
+# Vincular las herramientas al LLM (Tool Binding)
+llm_with_tools = llm.bind_tools(tools)
+
+# 2. Definición del Estado del Grafo (AgentState)
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+
+# 3. Prompt de Sistema con Estrategia de Planificación
+system_prompt_text = """Eres 'KickoffAgent', un agente senior de consultoría estratégica e ingeniería de software.
+Tu misión es guiar la planificación estratégica, viabilidad financiera y levantamiento de requerimientos bajo estándar IEEE 830.
+
+ESTRATEGIA DE PLANIFICACIÓN Y TOMA DE DECISIONES ADAPTATIVAS:
+Ante solicitudes complejas u organizacionales de evaluación de proyecto ("Kickoff completo", "Evaluación integral", etc.), ejecuta un esquema secuencial priorizado en 3 etapas:
+  - ETAPA 1 (Levantamiento y Consulta): Invoca 'consultar_documentacion_proyecto' para extraer alcance, requerimientos funcionales/no funcionales y parámetros presupuestarios.
+  - ETAPA 2 (Análisis y Razonamiento Determinista): Si hay datos de inversión y flujos, invoca obligatoriamente 'calcular_metricas_financieras' para determinar VAN, TIR, ROI y PRI.
+  - ETAPA 3 (Formalización y Escritura): Sintetiza el dictamen final y, si el usuario lo solicita o se trata de un informe formal, utiliza 'guardar_informe_kickoff' para persistir el acta en disco.
 
 REGLAS DE OPERACIÓN ESTRICTAS:
-1. Grounding y Citas: Responde basándote ÚNICAMENTE en los documentos recuperados mediante 'consultar_documentacion_proyecto'. Siempre cita el archivo de origen (ej: [Acta_Reunion_01.pdf]).
-2. Rigor Matemático: NUNCA calcules el VAN, TIR o flujos de caja manualmente. Siempre utiliza la herramienta 'calcular_metricas_financieras' extrayendo primero los datos necesarios.
-3. Formato de Salida:
-   - Para requerimientos: Estructura en formato IEEE 830 / Historias de Usuario (Como / Quiero / Para).
-   - Para finanzas: Entrega una tabla comparativa con VAN, TIR, ROI y la recomendación técnica formal.
+1. Grounding y Citas: Responde basándote en los documentos recuperados mediante 'consultar_documentacion_proyecto'. Cita siempre el documento fuente (ej: [Acta_Reunion_01.pdf]).
+2. Rigor Matemático: NUNCA calcules el VAN, TIR o flujos de caja probabilísticamente. Delega siempre el cálculo en 'calcular_metricas_financieras'.
+3. Continuidad Conversacional: Utiliza la memoria de la conversación para responder con coherencia a preguntas de seguimiento del usuario sin repetir pasos innecesarios.
+4. Formato de Salida:
+   - Para requerimientos: Estructura en Historias de Usuario (Como / Quiero / Para).
+   - Para finanzas: Entrega una tabla comparativa clara con VAN, TIR, ROI y la recomendación técnica formal.
 """
 
-agent_executor = create_agent(model=llm, tools=tools, system_prompt=system_prompt)
+# 4. Nodos del Grafo
+def call_model(state: AgentState) -> AgentState:
+    """Nodo 'agent': invoca al LLM inyectando el system prompt y la historia de mensajes."""
+    system = SystemMessage(content=system_prompt_text)
+    response = llm_with_tools.invoke([system] + state["messages"])
+    return {"messages": [response]}
+
+tool_node = ToolNode(tools)
+
+# 5. Función de decisión (Arista Condicional)
+def should_continue(state: AgentState) -> str:
+    """Evalúa si el modelo decidió invocar alguna herramienta o responder directamente."""
+    last_message = state["messages"][-1]
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        return "tools"
+    return END
+
+# 6. Ensamblado del Grafo (StateGraph, Nodos y Aristas)
+workflow = StateGraph(AgentState)
+
+# Registrar nodos
+workflow.add_node("agent", call_model)
+workflow.add_node("tools", tool_node)
+
+# Configurar punto de entrada y aristas
+workflow.set_entry_point("agent")
+workflow.add_conditional_edges(
+    "agent",
+    should_continue,
+    {
+        "tools": "tools",
+        END: END
+    }
+)
+workflow.add_edge("tools", "agent")
+
+# 7. Memoria de Corto Plazo y Compilación
+memory_saver = MemorySaver()
+agent_executor = workflow.compile(checkpointer=memory_saver)
 
 # ==============================================================================
-# 4. EJECUCIÓN DE PRUEBA
+# 5. EJECUCIÓN DE PRUEBA Y DEMOSTRACIÓN DE MEMORIA Y ORQUESTACIÓN
 # ==============================================================================
 
 if __name__ == "__main__":
@@ -211,9 +308,12 @@ if __name__ == "__main__":
     console.print(Panel("[bold cyan]KickoffAgent[/bold cyan] — Agente Inteligente de Formulación de Proyectos", border_style="cyan"))
     console.print()
 
+    # Identificador de sesión para el hilo de memoria conversacional
+    session_config = {"configurable": {"thread_id": "sesion_kickoff_demo"}}
+
     # --- TEST 1: CONSULTA DE REQUERIMIENTOS CON RAG ---
     query_req = "¿Cuáles son los requerimientos funcionales aprobados y en qué documento se basan?"
-    res_req = agent_executor.invoke({"messages": [("user", query_req)]})
+    res_req = agent_executor.invoke({"messages": [("user", query_req)]}, config=session_config)
     resp_req_text = res_req["messages"][-1].content
     console.print(Panel(Markdown(resp_req_text), title="TEST 1 — Consulta RAG", border_style="cyan"))
 
@@ -223,18 +323,30 @@ if __name__ == "__main__":
 
     # --- TEST 2: EVALUACIÓN FINANCIERA AUTOMATIZADA CON TOOL CALLING ---
     query_fin = "Revisa los documentos del proyecto, busca los datos de inversión y evalúa si es viable financieramente."
-    res_fin = agent_executor.invoke({"messages": [("user", query_fin)]})
+    res_fin = agent_executor.invoke({"messages": [("user", query_fin)]}, config=session_config)
     resp_fin_text = res_fin["messages"][-1].content
     console.print(Panel(Markdown(resp_fin_text), title="TEST 2 — Evaluación Financiera", border_style="green"))
     console.print()
 
-    # ==============================================================================
-    # 5. MODO INTERACTIVO
-    # ==============================================================================
-    console.rule("[bold yellow]Modo Interactivo[/bold yellow]")
+    console.rule("[bold cyan]────────────────────────────────────────────────────────────[/bold cyan]")
     console.print()
-    console.print(Panel("Modo interactivo — escribe tu consulta o 'salir' para terminar", border_style="yellow"))
+
+    # --- TEST 3: COMPROBACIÓN DE MEMORIA Y HERRAMIENTA DE ESCRITURA ---
+    query_write = "Tomando en cuenta la viabilidad que acabas de calcular en la consulta anterior, redacta un dictamen formal y guárdalo en un archivo llamado 'dictamen_kickoff.md'."
+    res_write = agent_executor.invoke({"messages": [("user", query_write)]}, config=session_config)
+    resp_write_text = res_write["messages"][-1].content
+    console.print(Panel(Markdown(resp_write_text), title="TEST 3 — Memoria y Escritura en Disco", border_style="magenta"))
     console.print()
+
+    # ==============================================================================
+    # 6. MODO INTERACTIVO
+    # ==============================================================================
+    console.rule("[bold yellow]Modo Interactivo (Memoria Activa)[/bold yellow]")
+    console.print()
+    console.print(Panel("Modo interactivo — escribe tu consulta o 'salir' para terminar (El agente recuerda toda la conversación)", border_style="yellow"))
+    console.print()
+
+    interactive_config = {"configurable": {"thread_id": "sesion_interactiva_usuario"}}
 
     while True:
         try:
@@ -252,7 +364,7 @@ if __name__ == "__main__":
             continue
 
         try:
-            res = agent_executor.invoke({"messages": [("user", clean_query)]})
+            res = agent_executor.invoke({"messages": [("user", clean_query)]}, config=interactive_config)
             respuesta = res["messages"][-1].content
             console.print()
             console.print(Panel(Markdown(respuesta), title="KickoffAgent", border_style="cyan"))
