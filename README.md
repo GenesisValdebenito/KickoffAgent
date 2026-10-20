@@ -137,6 +137,12 @@ Para iniciar las pruebas del agente (Requerimientos IEEE 830 y Evaluación Finan
 python src/kickoff_agent.py
 ```
 
+### 5. Ejecutar Pruebas Unitarias Automatizadas (pytest)
+Para validar el pipeline RAG, determinismo financiero y llamadas a herramientas:
+```bash
+pytest -v tests/test_agent.py
+```
+
 ---
 
 ## Requisitos del Proyecto (Rúbrica Evaluativa)
