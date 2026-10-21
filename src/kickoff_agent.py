@@ -60,12 +60,24 @@ from langgraph.graph.message import add_messages
 from src.tools import (
     calcular_metricas_financieras,
     guardar_informe_kickoff,
+    editar_nota_kickoff,
+    eliminar_nota_kickoff,
+    exportar_resumen_sesion,
     sumar,
     restar,
     multiplicar,
     dividir
 )
 from src.prompts import AGENT_SYSTEM_PROMPT
+from src.memory import (
+    guardar_sesion,
+    cargar_sesion,
+    listar_sesiones,
+    eliminar_sesion,
+    mensajes_a_langchain,
+    mensajes_desde_state,
+    SESSIONS_DIR
+)
 
 # Cargar variables de entorno desde la raíz del proyecto
 load_dotenv(dotenv_path=ENV_PATH)
@@ -377,6 +389,9 @@ tools = [
     consultar_documentacion_proyecto,
     calcular_metricas_financieras,
     guardar_informe_kickoff,
+    editar_nota_kickoff,
+    eliminar_nota_kickoff,
+    exportar_resumen_sesion,
     sumar,
     restar,
     multiplicar,
@@ -527,8 +542,70 @@ if __name__ == "__main__":
         nombre_modelo = getattr(llm, "model_name", "qwen/qwen3.8-27b")
         console.print(f"[bold green]✓ Conexión activa con el proveedor LLM (Modelo: {nombre_modelo}).[/bold green]\n")
 
+    # ===========================================================================
+    # SELECCIÓN DE SESIÓN: Continuar anterior o nueva
+    # ===========================================================================
+    sesiones_previas = listar_sesiones()
+    thread_id = None
+
+    if sesiones_previas:
+        console.print()
+        console.print(Panel(
+            "[bold cyan]Sesión Previa Detectada[/bold cyan]\n\n"
+            f"Se encontraron [bold]{len(sesiones_previas)}[/bold] sesión(es) guardada(s).\n\n"
+            "[bold green]1.[/bold green] Continuar la última conversación\n"
+            "[bold yellow]2.[/bold yellow] Nueva conversación (sesión limpia)\n"
+            "[bold red]3.[/bold red] Ver todas las sesiones guardadas",
+            border_style="cyan",
+            title="¿Qué deseas hacer?"
+        ))
+        try:
+            opcion_sesion = console.input("[bold yellow]> Ingresa 1, 2 o 3: [/bold yellow]").strip()
+        except (KeyboardInterrupt, EOFError):
+            opcion_sesion = "2"
+
+        if opcion_sesion == "1":
+            # Continuar la sesión más reciente
+            sesion_reciente = sesiones_previas[0]
+            thread_id = sesion_reciente["thread_id"]
+            datos_sesion = cargar_sesion(thread_id)
+            num_msgs = sesion_reciente["num_mensajes"]
+            ts = sesion_reciente["ultima_actualizacion"][:16].replace("T", " ")
+            console.print(f"[bold green]✓ Cargada sesión anterior: '{thread_id}' ({num_msgs} mensajes, última actividad: {ts})[/bold green]\n")
+            # Pre-cargar mensajes previos en el thread de LangGraph (inyectar como historial)
+            if datos_sesion and datos_sesion.get("mensajes"):
+                historial_lc = mensajes_a_langchain(datos_sesion["mensajes"])
+                try:
+                    # Inyectar historial al grafo para restaurar contexto
+                    _cfg_restore = {"configurable": {"thread_id": thread_id}}
+                    for role, content in historial_lc:
+                        agent_executor.update_state(_cfg_restore, {"messages": [(role, content)]})
+                    console.print(f"[dim]Historial de {len(historial_lc)} mensajes restaurado en la memoria del agente.[/dim]\n")
+                except Exception:
+                    pass  # update_state puede no estar disponible; el hilo nuevo es suficiente
+
+        elif opcion_sesion == "3":
+            console.print()
+            tabla = "[bold cyan]Sesiones guardadas:[/bold cyan]\n"
+            for i, s in enumerate(sesiones_previas, 1):
+                ts = s["ultima_actualizacion"][:16].replace("T", " ")
+                tabla += f"  {i}. [bold]{s['thread_id']}[/bold] — {s['num_mensajes']} mensajes — {ts}\n"
+            console.print(Panel(tabla, border_style="cyan"))
+            try:
+                idx_str = console.input("[bold yellow]> Ingresa el número de sesión a continuar (o ENTER para nueva): [/bold yellow]").strip()
+                if idx_str.isdigit() and 1 <= int(idx_str) <= len(sesiones_previas):
+                    thread_id = sesiones_previas[int(idx_str) - 1]["thread_id"]
+                    console.print(f"[bold green]✓ Sesión '{thread_id}' seleccionada.[/bold green]\n")
+            except (KeyboardInterrupt, EOFError):
+                pass
+
+    if not thread_id:
+        import uuid
+        thread_id = f"sesion_{uuid.uuid4().hex[:8]}"
+        console.print(f"[bold green]✓ Nueva sesión iniciada: '{thread_id}'.[/bold green]\n")
+
     # Identificador de sesión para el hilo de memoria conversacional
-    session_config = {"configurable": {"thread_id": "sesion_kickoff_demo"}}
+    session_config = {"configurable": {"thread_id": thread_id}}
 
     def ejecutar_bateria_pruebas(config):
         console.print()
@@ -616,18 +693,23 @@ if __name__ == "__main__":
         "  • '¿Cuál es el presupuesto o inversión inicial y es viable financieramente?'\n"
         "  • '¿Quiénes son los autores o participantes?'\n\n"
         "⚡ [bold]Comandos disponibles:[/bold]\n"
-        "  • [yellow]/cargar <ruta>[/yellow]  : Cargar e indexar otro documento en caliente\n"
-        "  • [yellow]/documentos[/yellow]     : Ver lista de documentos cargados\n"
-        "  • [yellow]/limpiar[/yellow]        : Reiniciar la memoria de la conversación\n"
-        "  • [yellow]/test[/yellow]           : Ejecutar la batería de pruebas automatizadas\n"
-        "  • [yellow]/ayuda[/yellow]          : Ver este menú de ayuda\n"
-        "  • [yellow]salir[/yellow]           : Finalizar la sesión"
+        "  • [yellow]/cargar <ruta>[/yellow]   : Cargar e indexar otro documento en caliente\n"
+        "  • [yellow]/documentos[/yellow]      : Ver lista de documentos cargados\n"
+        "  • [yellow]/limpiar[/yellow]         : Reiniciar la memoria de la conversación\n"
+        "  • [yellow]/historial[/yellow]       : Ver historial de la sesión actual\n"
+        "  • [yellow]/exportar[/yellow]        : Exportar resumen de la sesión a archivo\n"
+        "  • [yellow]/sesiones[/yellow]        : Ver y gestionar sesiones guardadas\n"
+        "  • [yellow]/test[/yellow]            : Ejecutar la batería de pruebas automatizadas\n"
+        "  • [yellow]/ayuda[/yellow]           : Ver este menú de ayuda\n"
+        "  • [yellow]salir[/yellow]            : Guardar y finalizar la sesión"
     )
     console.print(Panel(panel_info, title="KickoffAgent Q&A", border_style="cyan"))
     console.print()
 
-    thread_id = "sesion_interactiva_usuario"
-    interactive_config = {"configurable": {"thread_id": thread_id}}
+    thread_id_interactivo = thread_id
+    interactive_config = {"configurable": {"thread_id": thread_id_interactivo}}
+    # Lista local de mensajes para persistencia al final de sesión
+    historial_sesion: list = []
 
     while True:
         try:
@@ -641,7 +723,13 @@ if __name__ == "__main__":
             continue
 
         if clean_query.lower() in ["salir", "exit", "/salir", "/exit"]:
-            console.print("[cyan]Sesión cerrada. ¡Hasta luego![/cyan]")
+            # Guardar sesión antes de salir
+            guardar_sesion(
+                thread_id_interactivo,
+                historial_sesion,
+                metadata={"documentos": DOCUMENTOS_REGISTRADOS}
+            )
+            console.print(f"[bold green]✓ Sesión '{thread_id_interactivo}' guardada. ¡Hasta luego![/bold green]")
             break
 
         if clean_query.lower() in ["/ayuda", "/help"]:
@@ -651,6 +739,58 @@ if __name__ == "__main__":
         if clean_query.lower() in ["/documentos", "/docs"]:
             lista_docs = "\n".join(f"- {d}" for d in DOCUMENTOS_REGISTRADOS)
             console.print(Panel(f"Documentos cargados actualmente:\n\n{lista_docs}", title="Base de Conocimiento", border_style="cyan"))
+            continue
+
+        if clean_query.lower() in ["/historial", "/historia"]:
+            if not historial_sesion:
+                console.print("[yellow]No hay mensajes en el historial de esta sesión aún.[/yellow]\n")
+            else:
+                texto_hist = ""
+                for m in historial_sesion:
+                    emoji = "🧑" if m["role"] == "user" else "🤖"
+                    texto_hist += f"**{emoji} {m['role'].upper()}:** {m['content']}\n\n"
+                console.print(Panel(Markdown(texto_hist), title=f"Historial — {len(historial_sesion)} mensajes", border_style="cyan"))
+            continue
+
+        if clean_query.lower() in ["/exportar", "/export"]:
+            if not historial_sesion:
+                console.print("[yellow]No hay mensajes para exportar en esta sesión.[/yellow]\n")
+            else:
+                import datetime
+                contenido = ""
+                for m in historial_sesion:
+                    emoji = "🧑" if m["role"] == "user" else "🤖"
+                    contenido += f"**{emoji} {m['role'].upper()}:** {m['content']}\n\n---\n\n"
+                nombre_export = f"sesion_{thread_id_interactivo}_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.md"
+                from pathlib import Path as _Path
+                out = BASE_DIR / "output" / nombre_export
+                out.write_text(
+                    f"# Historial de Sesión — KickoffAgent\n_Thread: {thread_id_interactivo}_\n\n---\n\n" + contenido,
+                    encoding="utf-8"
+                )
+                console.print(f"[bold green]✓ Sesión exportada a: output/{nombre_export}[/bold green]\n")
+            continue
+
+        if clean_query.lower() in ["/sesiones"]:
+            todas = listar_sesiones()
+            if not todas:
+                console.print("[yellow]No hay sesiones guardadas.[/yellow]\n")
+            else:
+                tabla = ""
+                for i, s in enumerate(todas, 1):
+                    ts = s["ultima_actualizacion"][:16].replace("T", " ")
+                    tabla += f"  {i}. [bold]{s['thread_id']}[/bold] — {s['num_mensajes']} msgs — {ts}\n"
+                console.print(Panel(tabla, title="Sesiones guardadas", border_style="cyan"))
+                try:
+                    acc = console.input("[dim]Ingresa 'del N' para eliminar o ENTER para cerrar: [/dim]").strip()
+                    if acc.lower().startswith("del "):
+                        idx_del = acc.split()[1]
+                        if idx_del.isdigit() and 1 <= int(idx_del) <= len(todas):
+                            tid_del = todas[int(idx_del) - 1]["thread_id"]
+                            eliminar_sesion(tid_del)
+                            console.print(f"[bold green]✓ Sesión '{tid_del}' eliminada.[/bold green]")
+                except (KeyboardInterrupt, EOFError):
+                    pass
             continue
 
         if clean_query.lower().startswith("/cargar ") or clean_query.lower().startswith("/doc "):
@@ -672,8 +812,9 @@ if __name__ == "__main__":
 
         if clean_query.lower() == "/limpiar":
             import uuid
-            thread_id = f"sesion_{uuid.uuid4().hex[:8]}"
-            interactive_config = {"configurable": {"thread_id": thread_id}}
+            thread_id_interactivo = f"sesion_{uuid.uuid4().hex[:8]}"
+            interactive_config = {"configurable": {"thread_id": thread_id_interactivo}}
+            historial_sesion = []
             console.print("[bold green]✓ Memoria conversacional reiniciada. Puedes comenzar un nuevo tema.[/bold green]\n")
             continue
 
@@ -685,6 +826,15 @@ if __name__ == "__main__":
             with console.status("[bold cyan]Consultando con Groq y analizando documento...[/bold cyan]"):
                 res = invocar_agente_seguro({"messages": [("user", clean_query)]}, config=interactive_config)
             respuesta = res["messages"][-1].content
+            # Persistir turno en historial local
+            historial_sesion.append({"role": "user", "content": clean_query})
+            historial_sesion.append({"role": "ai", "content": respuesta})
+            # Auto-guardar sesión en disco
+            guardar_sesion(
+                thread_id_interactivo,
+                historial_sesion,
+                metadata={"documentos": DOCUMENTOS_REGISTRADOS}
+            )
             console.print()
             console.print(Panel(Markdown(respuesta), title="KickoffAgent (Groq)", border_style="cyan"))
             console.print()

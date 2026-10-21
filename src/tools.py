@@ -1,10 +1,10 @@
 """Módulo de Herramientas (Tools) del Agente KickoffAgent.
-Define las herramientas de cálculo determinista, operaciones matemáticas auxiliares
-y persistencia documental conforme al estándar de LangChain/LangGraph.
+Define las herramientas de cálculo determinista, operaciones matemáticas auxiliares,
+persistencia documental y gestión de notas conforme al estándar de LangChain/LangGraph.
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import numpy_financial as npf
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
@@ -137,3 +137,91 @@ def guardar_informe_kickoff(nombre_archivo: str, contenido_markdown: str) -> str
         return f"Informe guardado exitosamente en: {target_path}"
     except Exception as e:
         return f"Error al guardar el informe: {str(e)}"
+
+
+# ==============================================================================
+# 4. HERRAMIENTA DE EDICIÓN DE NOTAS
+# ==============================================================================
+
+class EditarNotaInput(BaseModel):
+    nombre_archivo: str = Field(
+        description="Nombre del archivo .md o .txt existente a editar (ej: 'dictamen_kickoff.md')."
+    )
+    nuevo_contenido: str = Field(
+        description="Contenido completo que reemplazará el archivo existente."
+    )
+
+
+@tool(args_schema=EditarNotaInput)
+def editar_nota_kickoff(nombre_archivo: str, nuevo_contenido: str) -> str:
+    """Edita (sobrescribe) el contenido de un archivo existente en el directorio output/.
+    Úsalo cuando el usuario pida modificar, actualizar o corregir un documento guardado."""
+    try:
+        clean_name = Path(nombre_archivo).name
+        target_path = OUTPUT_DIR / clean_name
+        if not target_path.exists():
+            archivos = [f.name for f in OUTPUT_DIR.iterdir() if f.is_file()]
+            return f"Archivo '{clean_name}' no encontrado. Archivos disponibles: {archivos}"
+        target_path.write_text(nuevo_contenido, encoding="utf-8")
+        return f"Archivo '{clean_name}' actualizado exitosamente en: {target_path}"
+    except Exception as e:
+        return f"Error al editar el archivo: {str(e)}"
+
+
+# ==============================================================================
+# 5. HERRAMIENTA DE ELIMINACIÓN DE NOTAS
+# ==============================================================================
+
+class EliminarNotaInput(BaseModel):
+    nombre_archivo: str = Field(
+        description="Nombre del archivo a eliminar del directorio output/ (ej: 'borrador.md')."
+    )
+
+
+@tool(args_schema=EliminarNotaInput)
+def eliminar_nota_kickoff(nombre_archivo: str) -> str:
+    """Elimina un archivo guardado en el directorio output/.
+    Úsalo cuando el usuario pida eliminar, borrar o descartar un documento generado."""
+    try:
+        clean_name = Path(nombre_archivo).name
+        target_path = OUTPUT_DIR / clean_name
+        if not target_path.exists():
+            return f"El archivo '{clean_name}' no existe en output/."
+        target_path.unlink()
+        return f"Archivo '{clean_name}' eliminado correctamente."
+    except Exception as e:
+        return f"Error al eliminar el archivo: {str(e)}"
+
+
+# ==============================================================================
+# 6. HERRAMIENTA DE RESUMEN DE SESIÓN
+# ==============================================================================
+
+class ExportarSesionInput(BaseModel):
+    nombre_archivo: Optional[str] = Field(
+        default="resumen_sesion.md",
+        description="Nombre del archivo de resumen (por defecto 'resumen_sesion.md')."
+    )
+    contenido_resumen: str = Field(
+        description="Texto completo del resumen de la sesión actual en formato Markdown."
+    )
+
+
+@tool(args_schema=ExportarSesionInput)
+def exportar_resumen_sesion(nombre_archivo: str, contenido_resumen: str) -> str:
+    """Exporta un resumen estructurado de la sesión de conversación actual a un archivo Markdown en output/.
+    Úsalo cuando el usuario pida exportar, resumir o guardar el historial de la conversación."""
+    try:
+        import datetime
+        clean_name = Path(nombre_archivo).name
+        if not clean_name.endswith(".md"):
+            clean_name += ".md"
+        target_path = OUTPUT_DIR / clean_name
+        encabezado = (
+            f"# Resumen de Sesión — KickoffAgent\n"
+            f"_Generado el: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_\n\n---\n\n"
+        )
+        target_path.write_text(encabezado + contenido_resumen, encoding="utf-8")
+        return f"Resumen de sesión guardado en: {target_path}"
+    except Exception as e:
+        return f"Error al exportar el resumen: {str(e)}"
