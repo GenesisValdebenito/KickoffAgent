@@ -131,17 +131,38 @@ GROQ_API_KEY=tu_clave_api_aqui
 ```
 > **Nota:** El archivo `.env` está ignorado por git por seguridad. Nunca subas tus contraseñas al repositorio público.
 
-### 4. Ejecutar el Agente
-Para iniciar las pruebas del agente (Requerimientos IEEE 830 y Evaluación Financiera):
+### 4. Ejecutar el Agente en Modo Preguntas y Respuestas (RAG con Groq)
+Para iniciar la sesión interactiva y hacer preguntas sobre cualquier documento ingresado:
+
 ```bash
 python src/kickoff_agent.py
 ```
 
-### 5. Ejecutar Pruebas Unitarias Automatizadas (pytest)
-Para validar el pipeline RAG, determinismo financiero y llamadas a herramientas:
+Al iniciar, el sistema te solicitará ingresar la ruta de tu documento (`.pdf`, `.txt`, `.md`) o simplemente presionar **ENTER** para cargar automáticamente los archivos que tengas en la carpeta `docs/` (por ejemplo, `Informe Técnico - KickoffAgent.pdf`).
+
+También puedes pasar la ruta del documento directamente como argumento:
 ```bash
-pytest -v tests/test_agent.py
+python src/kickoff_agent.py "docs/Informe Técnico - KickoffAgent.pdf"
 ```
+
+#### Comandos interactivos en la sesión:
+- **Hacer cualquier pregunta:** Escribe libremente tu consulta (ej. *"¿De qué trata este documento?"*, *"¿Cuáles son los requerimientos aprobados?"*, *"¿Es viable financieramente?"*).
+- `/cargar <ruta>`: Carga e indexa un nuevo documento en la base de conocimiento sin reiniciar.
+- `/documentos`: Consulta qué archivos están actualmente indexados en ChromaDB.
+- `/limpiar`: Reinicia el hilo de memoria conversacional para comenzar un tema nuevo.
+- `/test`: Ejecuta las pruebas automatizadas de viabilidad financiera y RAG.
+- `/ayuda`: Muestra la lista de comandos disponibles.
+- `salir`: Finaliza la sesión.
+
+### 5. Ejecutar Pruebas Automatizadas
+- **Pruebas de demostración del agente:**
+  ```bash
+  python src/kickoff_agent.py --test
+  ```
+- **Pruebas unitarias completas con pytest:**
+  ```bash
+  python -m pytest -v tests/test_agent.py
+  ```
 
 ---
 

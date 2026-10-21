@@ -15,6 +15,10 @@ __pycache__/
 chroma_langchain_db/
 chroma.sqlite3
 
+# Salidas y caches de ejecucion
+output/
+.pytest_cache/
+
 # Archivos de sistema
 .DS_Store
 Thumbs.db
