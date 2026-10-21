@@ -11,6 +11,7 @@ if sys.platform == "win32":
 
 # Definición de rutas base del proyecto (resueltas desde src/)
 BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
 DOCS_DIR = BASE_DIR / "docs"
 PROMPTS_DIR = BASE_DIR / "prompts"
 OUTPUT_DIR = BASE_DIR / "output"
@@ -51,7 +52,14 @@ from langchain.agents import create_agent
 # Cargar variables de entorno desde la raíz del proyecto
 load_dotenv(dotenv_path=ENV_PATH)
 groq_api_key = os.environ.get("GROQ_API_KEY") or "dummy_key_for_testing"
-llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=800, api_key=groq_api_key)
+llm = ChatGroq(
+    model="qwen/qwen3.8-27b",
+    temperature=0.0,
+    max_tokens=800,
+    api_key=groq_api_key,
+    max_retries=3,
+    timeout=60
+)
 embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 # Importación de herramientas modulares desde src/tools.py (estilo canónico del curso)
