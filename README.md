@@ -19,8 +19,12 @@ Este proyecto fue desarrollado como parte de la evaluación **"Diseño de soluci
    - Utiliza una herramienta matemática determinista (`numpy-financial`) para calcular con 100% de precisión métricas como: **VAN** (Valor Actual Neto), **TIR** (Tasa Interna de Retorno), **ROI** y **PRI**.
    - Formula una recomendación técnica formal sobre la rentabilidad de la inversión.
 
-3. **Orquestación de Agentes con LangGraph:**
-   - Toma de decisiones autónoma: El modelo LLM decide, basado en la consulta del usuario, si debe invocar la búsqueda documental (RAG) o la calculadora financiera, manteniendo el contexto de la conversación.
+3. **Exportación Ejecutiva a Word (.docx) y PDF:**
+   - Convierte los dictámenes, actas y requerimientos en documentos ejecutivos corporativos en formatos **Word (`.docx`)** y **PDF (`.pdf`)**.
+   - Estiliza automáticamente tablas financieras, encabezados, numeración de páginas y metadatos sin depender de software externo.
+
+4. **Orquestación de Agentes con LangGraph:**
+   - Toma de decisiones autónoma: El modelo LLM decide, basado en la consulta del usuario, si debe invocar la búsqueda documental (RAG), la calculadora financiera o la exportación a archivos, manteniendo el contexto de la conversación.
 
 ---
 
@@ -91,7 +95,10 @@ KickoffAgent/
 ├── .env
 ├── .gitignore
 ├── src/
-│   └── kickoff_agent.py
+│   ├── kickoff_agent.py
+│   ├── exporters.py
+│   ├── tools.py
+│   └── prompts.py
 ├── docs/
 │   ├── README.md
 │   ├── informe_tecnico.docx
@@ -147,6 +154,7 @@ python src/kickoff_agent.py "docs/Informe Técnico - KickoffAgent.pdf"
 
 #### Comandos interactivos en la sesión:
 - **Hacer cualquier pregunta:** Escribe libremente tu consulta (ej. *"¿De qué trata este documento?"*, *"¿Cuáles son los requerimientos aprobados?"*, *"¿Es viable financieramente?"*).
+- **Exportación ejecutiva a Word y PDF:** Pide al agente *"Exporta el informe a Word"*, *"Genera el dictamen en PDF"* o *"Guarda el acta en todos los formatos"* para obtener documentos corporativos con tablas y estilos ejecutivos en la carpeta `output/`.
 - `/cargar <ruta>`: Carga e indexa un nuevo documento en la base de conocimiento sin reiniciar.
 - `/documentos`: Consulta qué archivos están actualmente indexados en ChromaDB.
 - `/limpiar`: Reinicia el hilo de memoria conversacional para comenzar un tema nuevo.

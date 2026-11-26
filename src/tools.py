@@ -109,32 +109,67 @@ def calcular_metricas_financieras(
     }
 
 
+from src.exporters import (
+    exportar_informe_multiformato,
+    exportar_a_docx,
+    exportar_a_pdf
+)
+
 # ==============================================================================
-# 3. HERRAMIENTA DE ESCRITURA Y PERSISTENCIA DOCUMENTAL
+# 3. HERRAMIENTA DE ESCRITURA Y PERSISTENCIA DOCUMENTAL (WORD, PDF Y MARKDOWN)
 # ==============================================================================
 
 class GuardarInformeInput(BaseModel):
     nombre_archivo: str = Field(
-        description="Nombre del archivo a crear con extension .md o .txt (ej: 'dictamen_kickoff.md')."
+        default="dictamen_kickoff",
+        description="Nombre base del archivo a crear (ej: 'dictamen_kickoff' o 'informe_kickoff.md')."
     )
     contenido_markdown: str = Field(
-        description="Contenido completo del informe formal en formato Markdown a guardar."
+        description="Contenido completo del informe formal en formato Markdown a guardar y exportar."
+    )
+    formato: str = Field(
+        default="todos",
+        description="Formato de exportación: 'docx' (Word), 'pdf' (PDF), 'md' (Markdown), o 'todos' (genera los tres formatos con diseño corporativo)."
     )
 
 
 @tool(args_schema=GuardarInformeInput)
-def guardar_informe_kickoff(nombre_archivo: str, contenido_markdown: str) -> str:
-    """Guarda formalmente el informe final de viabilidad o especificación técnica IEEE 830
-    en el directorio de salida del proyecto (output/). Utilízalo cuando el usuario pida
-    generar, formalizar, guardar o exportar el documento del proyecto."""
+def guardar_informe_kickoff(
+    nombre_archivo: str,
+    contenido_markdown: str,
+    formato: str = "todos"
+) -> str:
+    """Guarda y exporta formalmente el informe final de viabilidad o especificación técnica IEEE 830
+    en formatos Word (.docx), PDF (.pdf) y Markdown (.md) en el directorio de salida (output/).
+    Utilízalo obligatoriamente cuando el usuario solicite guardar, formalizar, generar o exportar a Word, PDF o archivo."""
     try:
-        clean_name = Path(nombre_archivo).name
-        if not (clean_name.endswith(".md") or clean_name.endswith(".txt")):
-            clean_name += ".md"
-        
-        target_path = OUTPUT_DIR / clean_name
-        target_path.write_text(contenido_markdown, encoding="utf-8")
-        return f"Informe guardado exitosamente en: {target_path}"
+        # Si el usuario pasa explícitamente una extensión en el nombre, respetar el formato
+        clean_ext = Path(nombre_archivo).suffix.lower()
+        if clean_ext in [".docx", ".pdf", ".md"]:
+            formato_efectivo = clean_ext.replace(".", "") if formato == "todos" else formato
+        else:
+            formato_efectivo = formato
+
+        resultado = exportar_informe_multiformato(
+            contenido_markdown=contenido_markdown,
+            nombre_base=nombre_archivo,
+            directorio_salida=OUTPUT_DIR,
+            formato=formato_efectivo
+        )
+
+        archivos = resultado.get("archivos", {})
+        errores = resultado.get("errores", [])
+
+        if not archivos and errores:
+            return f"Error al generar informe: {'; '.join(errores)}"
+
+        detalles_archivos = "\n".join([f"- **{fmt.upper()}:** `{ruta}`" for fmt, ruta in archivos.items()])
+        mensaje_salida = f"Informe guardado exitosamente en los siguientes formatos:\n{detalles_archivos}"
+
+        if errores:
+            mensaje_salida += f"\n\n*Advertencias durante la exportación:* {'; '.join(errores)}"
+
+        return mensaje_salida
     except Exception as e:
         return f"Error al guardar el informe: {str(e)}"
 

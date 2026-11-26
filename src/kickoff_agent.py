@@ -156,8 +156,11 @@ class MockDemoChat(BaseChatModel):
                 )
                 return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
 
-            elif any(w in user_lower for w in ["dictamen", "guardar", "informe", "archivo"]):
-                content = "El dictamen formal ha sido generado y guardado exitosamente en el archivo **`dictamen_kickoff.md`** dentro del directorio `output/`."
+            elif any(w in user_lower for w in ["dictamen", "guardar", "informe", "archivo", "word", "docx", "pdf", "exporta"]):
+                content = (
+                    "El dictamen formal ha sido generado y exportado exitosamente en formatos "
+                    "**Word (`.docx`)**, **PDF (`.pdf`)** y **Markdown (`.md`)** dentro del directorio `output/`."
+                )
                 return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
 
             elif last_msg.name == "consultar_documentacion_proyecto":
@@ -175,27 +178,30 @@ class MockDemoChat(BaseChatModel):
         user_text = last_msg.content if isinstance(last_msg, HumanMessage) else str(last_msg)
         user_lower = user_text.lower()
 
-        if any(w in user_lower for w in ["redacta", "guárdalo", "guardalo", "dictamen_kickoff.md", "informe"]):
+        if any(w in user_lower for w in ["redacta", "guárdalo", "guardalo", "dictamen_kickoff.md", "informe", "word", "docx", "pdf", "exporta"]):
             ai_msg = AIMessage(
-                content="Procedo a generar el informe formal de viabilidad y guardarlo en el archivo 'dictamen_kickoff.md'.",
+                content="Procedo a generar y exportar el informe formal de viabilidad en formatos Word (.docx), PDF y Markdown.",
                 tool_calls=[{
                     "name": "guardar_informe_kickoff",
                     "args": {
-                        "nombre_archivo": "dictamen_kickoff.md",
+                        "nombre_archivo": "dictamen_kickoff",
                         "contenido_markdown": (
                             "# Dictamen Formal de Viabilidad y Formulación - KickoffAgent\n\n"
                             "## 1. Alcance y Especificación IEEE 830\n"
                             "- **Sistema:** Gestión de inventario web corporativo.\n"
                             "- **Requerimientos Aprobados:** Autenticación OAuth2 (RF-01) y Exportación de reportes PDF/Excel (RF-02).\n\n"
                             "## 2. Evaluación Financiera (numpy-financial)\n"
-                            "- **Inversión Inicial:** $12.000.000 CLP\n"
-                            "- **VAN (10%):** +$881.292,26 CLP\n"
-                            "- **TIR:** 13.9%\n"
-                            "- **ROI:** 30.83%\n"
-                            "- **PRI:** 3 periodos\n\n"
+                            "| Métrica Financiera | Valor | Criterio de Decisión |\n"
+                            "| :--- | :--- | :--- |\n"
+                            "| Inversión Inicial | $12.000.000 CLP | Presupuesto límite del acta |\n"
+                            "| VAN (10%) | +$881.292,26 CLP | VAN > 0 (Viable) |\n"
+                            "| TIR | 13.9% | TIR > 10% (Rentable) |\n"
+                            "| ROI | 30.83% | Rentabilidad positiva |\n"
+                            "| PRI | 3 periodos | Recuperación año 3 |\n\n"
                             "## 3. Conclusión y Recomendación Técnica\n"
-                            "Proyecto viable y rentable. Cumple estándares IEEE 830 y criterios financieros exigidos."
-                        )
+                            "Proyecto técnica y financieramente viable. Cumple estándares IEEE 830 y criterios financieros exigidos."
+                        ),
+                        "formato": "todos"
                     },
                     "id": "call_write_01"
                 }]
