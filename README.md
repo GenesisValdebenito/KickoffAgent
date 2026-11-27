@@ -1,177 +1,141 @@
-# KickoffAgent 
+# KickoffAgent
 
-**KickoffAgent** es un agente inteligente diseñado para firmas de consultoría tecnológica e ingeniería de software. Su objetivo principal es asistir en la evaluación estratégica de proyectos TI mediante el análisis automatizado de requerimientos de software y la evaluación de viabilidad financiera.
+KickoffAgent es un agente inteligente para firmas de consultoría tecnológica e ingeniería de software. Asiste en la etapa inicial de un proyecto mediante análisis documental con RAG y evaluación financiera determinista.
 
+El proyecto se desarrolló para la asignatura Ingeniería de Soluciones con Inteligencia Artificial. El repositorio es público en `https://github.com/GenesisValdebenito/KickoffAgent`.
 
-Este proyecto fue desarrollado como parte de la evaluación **"Diseño de solución con LLM y RAG"**, integrando capacidades avanzadas de Prompt Engineering, Recuperación Aumentada por Generación (RAG) y Tool Calling (Uso de herramientas).
+## Capacidades
 
----
+1. Análisis de requerimientos con RAG. Ingesta de actas, especificaciones IEEE 830 y archivos PDF, TXT, MD, CSV o JSON. Extrae requerimientos funcionales y no funcionales en formato de historias de usuario y cita la fuente.
+2. Evaluación financiera determinista. Extrae inversión inicial, flujos de caja y tasa de descuento desde los documentos, y delega el cálculo de VAN, TIR, ROI y PRI en `numpy-financial`. El modelo no calcula estos valores en texto.
+3. Orquestación con LangGraph. Un grafo con nodos `agent` y `tools` decide de forma autónoma si invoca RAG, cálculo financiero, persistencia u operaciones aritméticas.
+4. Memoria conversacional. Memoria de corto plazo con `MemorySaver` por `thread_id` y persistencia de sesiones en JSON dentro de `sessions/`.
 
-## Características Principales
+## Arquitectura
 
-1. **Análisis de Requerimientos (RAG):**
-   - Capacidad de ingerir y leer documentación estructurada (Actas de reunión, Especificaciones Técnicas IEEE 830).
-   - Extrae requerimientos funcionales y no funcionales, transformándolos automáticamente en formato de **Historias de Usuario**.
-   - Búsqueda semántica usando base de datos vectorial local.
+- Modelo principal: Groq `qwen/qwen3.8-27b`, temperatura 0. Alternativa: OpenAI `gpt-4o-mini`.
+- Embeddings: FastEmbed `BAAI/bge-small-en-v1.5`, ejecución local.
+- Vector store: ChromaDB, colección `kickoff_agent_knowledge`, recuperación `k=4`.
+- Grafo: LangGraph `StateGraph`, `ToolNode`, arista condicional `should_continue`.
+- Herramientas: 10 en total, definidas en `src/tools.py`.
+- Prompt del sistema: `AGENT_SYSTEM_PROMPT` en `src/prompts.py`.
+- Observabilidad: registros JSONL en `logs/agent_logs.jsonl`.
 
-2. **Evaluación de Viabilidad Financiera (Tool Calling):**
-   - Extrae automáticamente variables financieras clave desde actas de proyecto (Inversión inicial, Flujos de caja proyectados, Tasa de descuento).
-   - Utiliza una herramienta matemática determinista (`numpy-financial`) para calcular con 100% de precisión métricas como: **VAN** (Valor Actual Neto), **TIR** (Tasa Interna de Retorno), **ROI** y **PRI**.
-   - Formula una recomendación técnica formal sobre la rentabilidad de la inversión.
+No existe modo demostración. Para ejecutar el agente se requiere una API key válida. Si no está configurada, el programa lo indica y termina.
 
-3. **Orquestación de Agentes con LangGraph:**
-   - Toma de decisiones autónoma: El modelo LLM decide, basado en la consulta del usuario, si debe invocar la búsqueda documental (RAG) o la calculadora financiera, manteniendo el contexto de la conversación.
+## Estructura real del proyecto
 
----
-
-## Pipeline del Agente
-
-KickoffAgent expone dos capacidades principales que el orquestador activa de forma autónoma según el tipo de consulta:
-
-### 1. RAG Semántico sobre Documentación de Proyecto
-
-```
-[Documentos PDF / Actas / IEEE 830]
-         │
-         ▼
-  [PyPDFLoader + Chunking]       ← RecursiveCharacterTextSplitter (700 tokens, 120 overlap)
-         │
-         ▼
-  [FastEmbedEmbeddings]          ← BAAI/bge-small-en-v1.5 (local, sin PyTorch)
-         │
-         ▼
-     [ChromaDB]                  ← Vector Store persistente local
-         │
-         ▼
-  [Retriever (Top-K=3)]
-         │
-         ▼
-  [LLM Groq + Prompt IEEE 830]   ← Respuesta con citas de fuentes
-```
-
-El agente recupera fragmentos semánticamente relevantes de los documentos cargados y los usa como contexto para generar respuestas estructuradas en formato IEEE 830 / Historias de Usuario.
-
-### 2. Evaluación Financiera Determinista (Tool Calling)
-
-```
-[Consulta del usuario]
-         │
-         ▼
-  [LLM extrae variables]         ← inversion_inicial, flujos_caja, tasa_descuento
-         │
-         ▼
-  [Tool: calcular_metricas_financieras]
-         │
-         ▼
-  [numpy-financial]              ← VAN (NPV), TIR (IRR), ROI, PRI
-         │
-         ▼
-  [LLM formatea tabla + recomendación técnica formal]
-```
-
-A diferencia del RAG, esta ruta es **100% determinista**: el LLM jamás calcula valores financieros directamente, delegando siempre en la herramienta matemática para eliminar alucinaciones.
-
----
-
-## Arquitectura Técnica
-
-- **Modelo LLM Principal:** Groq (`qwen/qwen3.8-27b`) por su bajísima latencia e inferencia rápida.
-- **Embeddings:** `FastEmbed` (`BAAI/bge-small-en-v1.5`), ejecutado localmente sin dependencias pesadas como PyTorch, garantizando velocidad y compatibilidad en Windows.
-- **Base de Datos Vectorial:** ChromaDB (Persistente local).
-- **Framework de Agentes:** LangChain / LangGraph (`create_agent`).
-
----
-
-## Estructura del Proyecto
-
-```
+```text
 KickoffAgent/
-├── README.md
-├── requirements.txt
-├── .env
-├── .gitignore
 ├── src/
-│   └── kickoff_agent.py
-├── docs/
-│   ├── README.md
-│   ├── informe_tecnico.docx
-│   ├── evidencia_ejecucion.md
-│   ├── 01_arquitectura_kickoffagent.drawio
-│   └── 02_flujo_kickoffagent.drawio
-├── prompts/
-│   ├── README.md
-│   ├── 00_levantamiento_foda_pestel.md
-│   ├── 01_extraccion_rf_rnf.md
-│   ├── 02_generacion_backlog.md
-│   └── 03_rag_respuesta.md
-└── tests/
-    └── README.md
+│   ├── kickoff_agent.py    # grafo, RAG, LLM y consola interactiva
+│   ├── tools.py            # herramientas del agente
+│   ├── prompts.py          # prompt del sistema usado por el grafo
+│   └── memory.py           # persistencia de sesiones
+├── observability/
+│   ├── logger.py           # registro JSONL de ejecuciones
+│   └── metrics.py          # latencia, tokens, costo y errores
+├── eval/
+│   └── dataset.json        # 15 casos de evaluación funcional
+├── api/
+│   └── server.py           # FastAPI: /health, /ask, /metrics, /eval
+├── prompts/                # plantillas de diseño, no cargadas en ejecución
+│   ├── prompt_01.md
+│   ├── prompt_02.md
+│   ├── prompt_03.md
+│   ├── prompt_04.md
+│   └── prompt_05.md
+├── docs/                   # informes y diagramas
+├── tests/                  # pytest y capturas de evidencia
+├── logs/                   # registros generados en ejecución
+├── sessions/               # sesiones persistidas
+├── output/                 # informes generados por el agente
+├── requirements.txt
+└── README.md
 ```
 
----
+Los archivos de `prompts/` son artefactos de documentación del diseño. El único prompt cargado por el código es `AGENT_SYSTEM_PROMPT` en `src/prompts.py`.
 
-## Instalación y Uso
+## Instalación
 
-### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/GenesisValdebenito/KickoffAgent.git
 cd KickoffAgent
-```
-
-### 2. Instalar dependencias
-Es altamente recomendado utilizar un entorno virtual (venv).
-```bash
+python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 3. Configurar variables de entorno
-Crea un archivo llamado `.env` en la raíz del proyecto y agrega tu API Key de Groq:
-```env
-GROQ_API_KEY=tu_clave_api_aqui
-```
-> **Nota:** El archivo `.env` está ignorado por git por seguridad. Nunca subas tus contraseñas al repositorio público.
+Crear un archivo `.env` en la raíz:
 
-### 4. Ejecutar el Agente en Modo Preguntas y Respuestas (RAG con Groq)
-Para iniciar la sesión interactiva y hacer preguntas sobre cualquier documento ingresado:
+```text
+GROQ_API_KEY=tu_clave_gsk
+```
+
+También se admite `OPENAI_API_KEY`. El archivo `.env` está ignorado por Git.
+
+## Ejecución
+
+Modo interactivo:
 
 ```bash
 python src/kickoff_agent.py
 ```
 
-Al iniciar, el sistema te solicitará ingresar la ruta de tu documento (`.pdf`, `.txt`, `.md`) o simplemente presionar **ENTER** para cargar automáticamente los archivos que tengas en la carpeta `docs/` (por ejemplo, `Informe Técnico - KickoffAgent.pdf`).
+Indexar un documento al iniciar:
 
-También puedes pasar la ruta del documento directamente como argumento:
 ```bash
-python src/kickoff_agent.py "docs/Informe Técnico - KickoffAgent.pdf"
+python src/kickoff_agent.py "docs/Informe_Tecnico_KickoffAgent.pdf"
 ```
 
-#### Comandos interactivos en la sesión:
-- **Hacer cualquier pregunta:** Escribe libremente tu consulta (ej. *"¿De qué trata este documento?"*, *"¿Cuáles son los requerimientos aprobados?"*, *"¿Es viable financieramente?"*).
-- `/cargar <ruta>`: Carga e indexa un nuevo documento en la base de conocimiento sin reiniciar.
-- `/documentos`: Consulta qué archivos están actualmente indexados en ChromaDB.
-- `/limpiar`: Reinicia el hilo de memoria conversacional para comenzar un tema nuevo.
-- `/test`: Ejecuta las pruebas automatizadas de viabilidad financiera y RAG.
-- `/ayuda`: Muestra la lista de comandos disponibles.
-- `salir`: Finaliza la sesión.
+Ejecutar pruebas unitarias:
 
-### 5. Ejecutar Pruebas Automatizadas
-- **Pruebas de demostración del agente:**
-  ```bash
-  python src/kickoff_agent.py --test
-  ```
-- **Pruebas unitarias completas con pytest:**
-  ```bash
-  python -m pytest -v tests/test_agent.py
-  ```
+```bash
+python -m pytest -v tests/
+```
 
----
+También funciona:
 
-## Requisitos del Proyecto (Rúbrica Evaluativa)
-Este repositorio cumple con los siguientes entregables de evaluación:
-- [x] Formulación y justificación de prompts optimizados (`system_prompt` con reglas estrictas).
-- [x] Diseño e implementación de un pipeline RAG local.
-- [x] Integración de herramientas de recuperación (Tool Calling) y control de contexto conversacional (Grafo de estado).
-- [x] Implementación sobre un caso de uso organizacional real (Consultoría TI).
+```bash
+python src/kickoff_agent.py --test
+```
 
----
-*Desarrollado para el módulo de Desarrollo de Agentes Inteligentes con LLM.*
+Al iniciar, el programa solicita la ruta de un documento. Si se presiona ENTER, indexa los archivos de `docs/`. Luego ofrece continuar una sesión previa o crear una nueva.
+
+## Comandos interactivos
+
+- `/cargar <ruta>` indexa un documento en caliente.
+- `/documentos` lista los documentos activos.
+- `/historial` muestra el historial de la sesión.
+- `/exportar` guarda el historial en `output/`.
+- `/sesiones` lista y gestiona sesiones guardadas.
+- `/limpiar` reinicia la memoria conversacional.
+- `/test` ejecuta la batería de pruebas con pytest.
+- `/ayuda` muestra el menú.
+- `salir` guarda la sesión y termina.
+
+## Observabilidad
+
+Cada invocación del grafo escribe una línea en `logs/agent_logs.jsonl` con: timestamp, `trace_id`, `thread_id`, ruta elegida, herramientas invocadas, fragmentos recuperados, latencia, tokens, salida y errores.
+
+Las utilidades de medición están en `observability/metrics.py`. Incluyen context manager de latencia, resumen de tokens, cálculo de costo según precios configurados en `.env` y registro de errores.
+
+## API
+
+Levantar el servidor:
+
+```bash
+uvicorn api.server:app --reload --host 127.0.0.1 --port 8000
+```
+
+Endpoints:
+
+- `GET /health`: estado del agente y documentos registrados.
+- `POST /ask`: cuerpo con `pregunta` y `thread_id` opcional.
+- `GET /metrics`: ejecuciones, errores, latencia promedio y p95, rutas y herramientas más usadas.
+- `POST /eval`: ejecuta el dataset y guarda `eval/results.json`.
+
+## Evaluación
+
+`eval/dataset.json` contiene 15 casos con pregunta, referencia, herramientas esperadas y fuente esperada. Cubre las categorías RAG, finanzas, persistencia, rechazo y aritmética.
+
+La evidencia visual de ejecución se encuentra en `tests/Evidencia_Tests.md` y las capturas `test_01.png` a `test_04-2.png`.
