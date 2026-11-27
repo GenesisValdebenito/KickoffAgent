@@ -1,0 +1,366 @@
+{
+  "timestamp": "2026-11-27T10:57:14",
+  "total_casos": 15,
+  "tool_call_accuracy": 1.0,
+  "agent_goal_accuracy": 1.0,
+  "agent_goal_score_promedio": 1.0,
+  "casos_con_contexto_rag": 10,
+  "faithfulness_promedio": 0.89,
+  "answer_relevancy_promedio": 0.89,
+  "latencia_promedio_ms": 17068.45,
+  "latencia_p95_ms": 37176.72,
+  "tasa_error": 0.0,
+  "resultados": [
+    {
+      "id": "rag_001",
+      "categoria": "rag",
+      "pregunta": "¿Cuáles son los requerimientos funcionales aprobados y en qué documento se basan?",
+      "referencia": "RF-01 autenticación OAuth2 y RF-02 reportes PDF y Excel en menos de 3 segundos, según Especificacion_IEEE830.pdf.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta identifica correctamente los requerimientos RF-01 y RF-02 con sus detalles específicos (OAuth2, PDF/Excel < 3s) y el documento fuente (Especificacion_IEEE830.pdf), cumpliendo plenamente con el hecho clave esperado.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9,
+      "cita_esperada": "Especificacion_IEEE830.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 3048.59,
+      "respuesta": "Según la documentación del proyecto, los **requerimientos funcionales (RF)** registrados son los siguientes:\n\n## Requerimientos Funcionales\n\n| ID | Descripción |\n|----|-------------|\n| **RF-01** | El sistema debe autenticar usuarios mediante **OAuth2**. |\n| **RF-02** | El sistema debe generar reportes exportables en formato **PDF y Excel** en menos de **3 segundos**. |\n\n## Documento fuente\nEstos requerimientos se basan en el documento **[Especificacion_IEEE830.pdf]**, que corresponde a la *Especificación Técnica IEEE 830* del proyecto.\n\n---\n\n### Nota sobre el estado de \"aprobación\"\nEn los fragmentos recuperados **no aparece una mención explícita de aprobación formal** (por ejemplo, una firma, acta de aceptación o estatus \"aprobado\") para estos requerimientos. Lo que sí consta en la documentación es:\n\n- **[Acta_Reunion_01.pdf]**: define el alcance general (sistema web para gestión de inventario), el presupuesto límite de inversión inicial ($12.000.000 CLP), la proyección de ahorro anual",
+      "error": null
+    },
+    {
+      "id": "rag_002",
+      "categoria": "rag",
+      "pregunta": "¿Qué requerimiento no funcional define la disponibilidad del sistema?",
+      "referencia": "RNF-01 exige disponibilidad del 99.9% en horario hábil, según Especificacion_IEEE830.pdf.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta identifica correctamente el requerimiento RNF-01 y especifica el valor exacto de disponibilidad (99.9% en horario hábil), coincidiendo con el hecho clave proporcionado.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Especificacion_IEEE830.pdf",
+      "cita_encontrada": false,
+      "latencia_ms": 29714.55,
+      "respuesta": "El requerimiento no funcional que define la disponibilidad del sistema es:\n\n**RNF-01:** La disponibilidad del servicio debe ser **99.9% en horario hábil**.\n\n[Espeficación_IEEE830.pdf]",
+      "error": null
+    },
+    {
+      "id": "rag_003",
+      "categoria": "rag",
+      "pregunta": "¿Cuál es el presupuesto límite de inversión inicial del proyecto?",
+      "referencia": "El acta define un límite de inversión inicial de $12.000.000 CLP.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente identifica correctamente el presupuesto límite de inversión inicial ($12.000.000 CLP) tal como se especifica en el hecho clave, citando la fuente adecuada.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Acta_Reunion_01.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 9837.91,
+      "respuesta": "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores.",
+      "error": null
+    },
+    {
+      "id": "rag_004",
+      "categoria": "rag",
+      "pregunta": "¿Cuáles son los flujos de caja proyectados en el acta?",
+      "referencia": "Año 1 $4.500.000, Año 2 $5.000.000 y Año 3 $6.200.000 CLP.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente proporciona exactamente los valores solicitados (Año 1: $4.500.000, Año 2: $5.000.000, Año 3: $6.200.000 CLP) de manera clara y organizada, cumpliendo plenamente con el hecho clave esperado.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Acta_Reunion_01.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 12666.34,
+      "respuesta": "Según el documento **[Acta_Reunion_01.pdf]**, los flujos de caja proyectados (ahorro anual) son los siguientes:\n\n| Periodo | Flujo de caja proyectado |\n|---------|--------------------------|\n| Año 1   | $4.500.000 CLP           |\n| Año 2   | $5.000.000 CLP           |\n| Año 3   | $6.200.000 CLP           |\n\n**Datos complementarios del mismo documento:**\n- **Inversión inicial:** $12.000.000 CLP (presupuesto límite).\n- **Tasa de descuento exigida por gerencia:** 10%.\n\nSi lo deseas, puedo calcular las métricas financieras (VAN, TIR, ROI y Período de Recuperación) con estos valores. ¿Quieres que lo haga?",
+      "error": null
+    },
+    {
+      "id": "rag_005",
+      "categoria": "rag",
+      "pregunta": "¿Qué tasa de descuento exige la gerencia?",
+      "referencia": "La tasa de descuento exigida es 10%.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente identifica correctamente la tasa de descuento como 10%, coincidiendo exactamente con el hecho clave esperado. Además, proporciona la fuente y contexto adicional relevante.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Acta_Reunion_01.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 28889.15,
+      "respuesta": "La tasa de descuento exigida por la gerencia es del **10%** anual.\n\n**Fuente:** [Acta_Reunion_01.pdf] — \"Tasa de descuento exigida por gerencia: 10%.\"\n\nDato adicional del mismo documento para contexto:\n- Presupuesto límite de inversión inicial: $12.000.000 CLP\n- Ahorros anuales proyectados: Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n\n¿Deseas que calcule las métricas financieras (VAN, TIR, ROI, PRI) con estos valores?",
+      "error": null
+    },
+    {
+      "id": "fin_001",
+      "categoria": "finanzas",
+      "pregunta": "Revisa los documentos del proyecto, busca los datos de inversión y evalúa si es viable financieramente.",
+      "referencia": "VAN +$881.292,26, TIR 13.9%, ROI 30.83%, PRI 3 periodos. Proyecto viable.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto",
+        "calcular_metricas_financieras"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto",
+        "calcular_metricas_financieras"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente incluye exactamente los datos clave esperados: VAN +$881.292,26, TIR 13.9%, ROI 30.83% y PRI de 3 periodos, llegando a la conclusión correcta de viabilidad financiera.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Acta_Reunion_01.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 37176.72,
+      "respuesta": "# Evaluación de Viabilidad Financiera del Proyecto\n\n## 1. Datos extraídos de la documentación\nFuente: [Acta_Reunion_01.pdf]\n\n| Concepto | Valor |\n|---|---|\n| Inversión inicial (presupuesto límite) | $12.000.000 CLP |\n| Ahorro proyectado Año 1 | $4.500.000 CLP |\n| Ahorro proyectado Año 2 | $5.000.000 CLP |\n| Ahorro proyectado Año 3 | $6.200.000 CLP |\n| Tasa de descuento exigida por gerencia | 10% |\n\n## 2. Métricas financieras calculadas\n| Métrica | Resultado | Interpretación |\n|---|---|---|\n| **VAN (NPV)** | **+$881.292,26 CLP** | Positivo → el proyecto genera valor sobre la tasa de descuento |\n| **TIR (IRR)** | **13,9%** | Supera la tasa exigida del 10% |\n| **ROI** | **30,83%** | Retorno total sobre la inversión |\n| **PRI (Recuperación)** | **3 periodos** | La inversión se recupera al cierre del año 3 |\n\n## 3. Conclusión\n✅ **El proyecto es financieramente viable.**\n\n- El **VAN es positivo** (+$881.292), lo que indica que, descontado al 10%, el proyecto crea valor económico.\n- La **TIR ",
+      "error": null
+    },
+    {
+      "id": "fin_002",
+      "categoria": "finanzas",
+      "pregunta": "¿Es viable invertir 10.000.000 con flujos de 1.000.000 por periodo y tasa de 15%?",
+      "referencia": "VAN negativo, el dictamen debe indicar que el proyecto no es viable según criterio de VAN.",
+      "herramientas_esperadas": [
+        "calcular_metricas_financieras"
+      ],
+      "herramientas_obtenidas": [
+        "calcular_metricas_financieras"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta identifica correctamente que el VAN es negativo y concluye que el proyecto no es viable, cumpliendo con el hecho clave solicitado.",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 21197.03,
+      "respuesta": "## Evaluación de Viabilidad Financiera\n\n**Parámetros de la consulta:**\n- Inversión inicial: **10.000.000**\n- Flujos de caja: **1.000.000 por periodo** (10 periodos)\n- Tasa de descuento: **15%**\n\n### Resultados del cálculo\n\n| Métrica | Valor |\n|---|---|\n| **VAN (NPV)** | **-4.981.231,37** |\n| **TIR (IRR)** | 0,0% |\n| **ROI** | 0,0% |\n| **Período de Recuperación (PRI)** | 10 periodos |\n\n### Conclusión\n\n**El proyecto NO es viable** según el criterio del VAN.\n\n- El **VAN es negativo (-4.981.231,37)**, lo que indica que, descontados los flujos al 15%, la inversión no recupera su valor: se destruiría valor por ese monto.\n- La **TIR (0%)** está muy por debajo de la tasa de descuento del 15%, confirmando que el rendimiento del proyecto no compensa el costo del capital.\n- Aunque el PRI indica que la inversión se recupera nominalmente al final del horizonte (10 periodos), esto ocurre **sin considerar el valor del dinero en el tiempo**, por lo que no es un indicador favorable.\n\n### Recomendación\n",
+      "error": null
+    },
+    {
+      "id": "fin_003",
+      "categoria": "finanzas",
+      "pregunta": "Calcula el VAN con una inversión de 12.000.000, flujos de 4.500.000, 5.000.000 y 6.200.000, y tasa de 10%.",
+      "referencia": "VAN 881292.26.",
+      "herramientas_esperadas": [
+        "calcular_metricas_financieras"
+      ],
+      "herramientas_obtenidas": [
+        "calcular_metricas_financieras"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente proporciona el valor exacto del VAN solicitado (881.292,26), coincidiendo con el hecho clave esperado.",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 17205.31,
+      "respuesta": "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, la evaluación determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN positivo de **881.292,26** indica que, descontados los flujos al 10%, el proyecto genera valor por encima de la inversión inicial. Además, la TIR (13,9%) supera la tasa de descuento (10%), lo que refuerza la viabilidad.\n\n¿Deseas que guarde este dictamen en un archivo o que lo integre en un informe más completo?",
+      "error": null
+    },
+    {
+      "id": "fin_004",
+      "categoria": "finanzas",
+      "pregunta": "¿Cuál es el periodo de recuperación de la inversión del proyecto del acta?",
+      "referencia": "El periodo de recuperación es 3 periodos.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto",
+        "calcular_metricas_financieras"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto",
+        "calcular_metricas_financieras"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta identifica correctamente el periodo de recuperación como 3 periodos, coincidiendo exactamente con el hecho clave esperado. Además, proporciona contexto adicional relevante y datos de soporte.",
+      "faithfulness": 0.9,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "Acta_Reunion_01.pdf",
+      "cita_encontrada": true,
+      "latencia_ms": 28663.45,
+      "respuesta": "El **Período de Recuperación de la Inversión (PRI)** del proyecto es de **3 periodos (años)**.\n\n**Datos utilizados** (extraídos del [Acta_Reunion_01.pdf]):\n- Inversión inicial: $12.000.000 CLP\n- Flujos de caja proyectados:\n  - Año 1: $4.500.000\n  - Año 2: $5.000.000\n  - Año 3: $6.200.000\n- Tasa de descuento: 10%\n\n**Contexto de viabilidad** (cálculo determinista):\n- VAN: $881.292,26\n- TIR: 13,9%\n- ROI: 30,83%\n- **PRI: 3 periodos**\n- Conclusión: Proyecto financieramente viable (VAN > 0).\n\nEn resumen, la inversión inicial se recupera al completar el tercer año de operación, dentro del horizonte de proyección disponible en el acta.",
+      "error": null
+    },
+    {
+      "id": "pers_001",
+      "categoria": "persistencia",
+      "pregunta": "Redacta un dictamen formal de máximo 150 palabras y guárdalo en dictamen_kickoff.md con guardar_informe_kickoff. Confirma solo la ruta del archivo.",
+      "referencia": "Debe invocar guardar_informe_kickoff y confirmar la ruta en output/.",
+      "herramientas_esperadas": [
+        "guardar_informe_kickoff"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto",
+        "calcular_metricas_financieras",
+        "guardar_informe_kickoff"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "El agente invocó correctamente la herramienta guardar_informe_kickoff y confirmó la ruta del archivo en output/ como se solicitó.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 4628.19,
+      "respuesta": "C:\\Users\\Usuario\\Desktop\\School\\Sexto Semestre\\ISIA-VR\\KickoffAgent\\output\\dictamen_kickoff.md",
+      "error": null
+    },
+    {
+      "id": "pers_002",
+      "categoria": "persistencia",
+      "pregunta": "Exporta un resumen de la conversación actual.",
+      "referencia": "Debe invocar exportar_resumen_sesion.",
+      "herramientas_esperadas": [
+        "exportar_resumen_sesion"
+      ],
+      "herramientas_obtenidas": [
+        "exportar_resumen_sesion"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "El agente invocó correctamente la herramienta requerida 'exportar_resumen_sesion' y proporcionó un resumen coherente de la acción realizada, cumpliendo con el objetivo de la pregunta.",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 3280.68,
+      "respuesta": "He exportado el resumen de la conversación actual. El archivo se guardó en:\n\n📄 `output/resumen_sesion.md`\n\n**Contenido del resumen:**\n- **Contexto:** Sesión con KickoffAgent (consultoría estratégica, ingeniería de software y análisis documental).\n- **Interacciones:** Solicitud de exportación del resumen y la acción ejecutada.\n- **Estado:** Sesión activa, sin documentos de proyecto consultados ni cálculos financieros realizados hasta el momento.\n\n¿Deseas que continúe con alguna consulta sobre la documentación del proyecto, el levantamiento de requerimientos (IEEE 830) o la evaluación de viabilidad financiera?",
+      "error": null
+    },
+    {
+      "id": "rech_001",
+      "categoria": "rechazo",
+      "pregunta": "¿Cuál es el presupuesto de marketing para redes sociales?",
+      "referencia": "El agente debe indicar que no hay información sobre ese tema en los documentos.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "El agente cumplió correctamente el objetivo al indicar que no existe información sobre el presupuesto de marketing para redes sociales en los documentos, tal como se esperaba.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 2052.6,
+      "respuesta": "No encontré información sobre un **presupuesto de marketing para redes sociales** en los documentos cargados al proyecto.\n\nLos documentos disponibles solo contienen:\n\n- **Acta_Reunion_01.pdf**: Presupuesto límite de inversión inicial del sistema web de gestión de inventario ($12.000.000 CLP), proyección de ahorro anual (Año 1: $4.500.000, Año 2: $5.000.000, Año 3: $6.200.000) y tasa de descuento del 10%.\n- **Especificacion_IEEE830.pdf**: Requerimientos funcionales (RF-01, RF-02) y no funcionales (RNF-01) del sistema.\n\nNinguno de estos documentos menciona partidas de marketing, publicidad o redes sociales.\n\n¿Deseas que:\n1. Consulte los documentos con otra formulación (por ejemplo, \"presupuesto\", \"gastos\", \"partidas de inversión\")?\n2. Evalúe la viabilidad financiera del proyecto con los datos disponibles (VAN, TIR, ROI, PRI)?",
+      "error": null
+    },
+    {
+      "id": "rech_002",
+      "categoria": "rechazo",
+      "pregunta": "¿Quién ganó la final de la Copa América 2024?",
+      "referencia": "El agente debe rechazar la pregunta por estar fuera del dominio de los documentos.",
+      "herramientas_esperadas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "herramientas_obtenidas": [
+        "consultar_documentacion_proyecto"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "El agente rechazó correctamente la pregunta al indicar que la información no está en los documentos del proyecto y que su dominio es exclusivo de la documentación técnica y financiera, cumpliendo con el hecho clave esperado.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 15670.39,
+      "respuesta": "No tengo información sobre la Copa América 2024 en los documentos del proyecto. Los archivos cargados (Acta de Reunión 1 y Especificación IEEE 830) solo contienen información sobre el sistema web de gestión de inventario, su presupuesto, flujos de caja y requerimientos técnicos.\n\nAdemás, este agente está especializado exclusivamente en la documentación del proyecto, el levantamiento de requerimientos y la evaluación de viabilidad financiera, por lo que no puedo responder preguntas de deportes o actualidad.\n\n¿Te puedo ayudar con algo relacionado al proyecto? Por ejemplo:\n- **Viabilidad financiera**: puedo calcular el VAN, TIR, ROI y Período de Recuperación con los datos del acta.\n- **Requerimientos**: puedo estructurar los RF y RNF en formato de historias de usuario.\n- **Documentación**: puedo guardar, editar o exportar informes.",
+      "error": null
+    },
+    {
+      "id": "ari_001",
+      "categoria": "aritmetica",
+      "pregunta": "¿Cuánto es 15 más 25?",
+      "referencia": "40.",
+      "herramientas_esperadas": [
+        "sumar"
+      ],
+      "herramientas_obtenidas": [
+        "sumar"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente es numéricamente correcta (40) y coincide con el hecho clave esperado.",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 20180.37,
+      "respuesta": "15 + 25 = **40**",
+      "error": null
+    },
+    {
+      "id": "ari_002",
+      "categoria": "aritmetica",
+      "pregunta": "Divide 50 entre 2.",
+      "referencia": "25.",
+      "herramientas_esperadas": [
+        "dividir"
+      ],
+      "herramientas_obtenidas": [
+        "dividir"
+      ],
+      "tool_call_accuracy": true,
+      "agent_goal_accuracy": true,
+      "agent_goal_score": 1.0,
+      "agent_goal_justificacion": "La respuesta del agente es correcta, ya que proporciona el resultado exacto (25) solicitado en la pregunta.",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "cita_esperada": "",
+      "cita_encontrada": false,
+      "latencia_ms": 21815.43,
+      "respuesta": "El resultado de dividir 50 entre 2 es **25**.",
+      "error": null
+    }
+  ]
+}

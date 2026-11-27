@@ -1,0 +1,62 @@
+{
+  "casos": [
+    {
+      "id": "fin_003",
+      "pregunta": "Calcula el VAN con una inversión de 12.000.000, flujos de 4.500.000, 5.000.000 y 6.200.000, y tasa de 10%.",
+      "repeticiones": 5,
+      "tool_call_accuracy": 1.0,
+      "latencia_promedio_ms": 11274.79,
+      "latencia_desviacion_ms": 9895.3,
+      "latencia_min_ms": 3065.54,
+      "latencia_max_ms": 26529.41,
+      "respuestas_distintas": 2,
+      "respuestas": [
+        "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, la evaluación determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN p",
+        "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, la evaluación determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN p",
+        "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, el cálculo determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN posi",
+        "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, el cálculo determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN posi",
+        "## Resultado del Análisis Financiero\n\nCon los datos proporcionados, la evaluación determinista arroja los siguientes indicadores:\n\n| Indicador | Valor |\n|---|---|\n| **Inversión inicial** | 12.000.000 |\n| **Flujos de caja** | 4.500.000 / 5.000.000 / 6.200.000 |\n| **Tasa de descuento** | 10% |\n| **VAN (NPV)** | **881.292,26** |\n| **TIR (IRR)** | 13,9% |\n| **ROI** | 30,83% |\n| **Período de Recuperación (PRI)** | 3 periodos |\n\n### Conclusión\n✅ **Proyecto financieramente viable (VAN > 0).**\n\nEl VAN p"
+      ]
+    },
+    {
+      "id": "rag_003",
+      "pregunta": "¿Cuál es el presupuesto límite de inversión inicial del proyecto?",
+      "repeticiones": 5,
+      "tool_call_accuracy": 1.0,
+      "latencia_promedio_ms": 13768.88,
+      "latencia_desviacion_ms": 3004.5,
+      "latencia_min_ms": 10689.84,
+      "latencia_max_ms": 19371.47,
+      "respuestas_distintas": 1,
+      "respuestas": [
+        "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores.",
+        "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores.",
+        "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores.",
+        "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores.",
+        "El **presupuesto límite de inversión inicial** del proyecto es de **$12.000.000 CLP**.\n\n**Fuente:** [Acta_Reunion_01.pdf]\n\nComo dato complementario de la misma acta, se registran los siguientes parámetros financieros asociados:\n- **Proyección de ahorro anual:** Año 1: $4.500.000 | Año 2: $5.000.000 | Año 3: $6.200.000\n- **Tasa de descuento exigida por gerencia:** 10%\n\nSi lo deseas, puedo calcular las métricas de viabilidad financiera (VAN, TIR, ROI y Período de Recuperación) con estos valores."
+      ]
+    },
+    {
+      "id": "ari_001",
+      "pregunta": "¿Cuánto es 15 más 25?",
+      "repeticiones": 5,
+      "repeticiones_exitosas": 1,
+      "fallos": 4,
+      "tool_call_accuracy": 0.2,
+      "latencia_promedio_ms": 1199.89,
+      "latencia_desviacion_ms": 0.0,
+      "latencia_min_ms": 1199.89,
+      "latencia_max_ms": 1199.89,
+      "respuestas_distintas": 2,
+      "respuestas": [
+        "15 + 25 = **40**",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "consistencia_promedio": 0.7333,
+  "nota": "La repetición de ari_001 quedó limitada por la cuota diaria de tokens de Groq (TPD 200000). Se documenta como anomalía de infraestructura, no del agente."
+}

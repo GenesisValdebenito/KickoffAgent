@@ -77,7 +77,7 @@
     {
       "id": "pers_001",
       "categoria": "persistencia",
-      "pregunta": "Redacta un dictamen formal y guárdalo en un archivo llamado dictamen_kickoff.md.",
+      "pregunta": "Redacta un dictamen formal de máximo 150 palabras y guárdalo en dictamen_kickoff.md con guardar_informe_kickoff. Confirma solo la ruta del archivo.",
       "referencia": "Debe invocar guardar_informe_kickoff y confirmar la ruta en output/.",
       "herramientas_esperadas": ["guardar_informe_kickoff"],
       "debe_citar": ""

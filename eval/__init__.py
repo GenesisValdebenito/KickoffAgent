@@ -1,0 +1,1 @@
+"""Evaluación automática de KickoffAgent."""
