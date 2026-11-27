@@ -19,7 +19,10 @@ El proyecto se desarrolló para la asignatura Ingeniería de Soluciones con Inte
 - Grafo: LangGraph `StateGraph`, `ToolNode`, arista condicional `should_continue`.
 - Herramientas: 10 en total, definidas en `src/tools.py`.
 - Prompt del sistema: `AGENT_SYSTEM_PROMPT` en `src/prompts.py`.
-- Observabilidad: registros JSONL en `logs/agent_logs.jsonl`.
+- Observabilidad: registros JSONL en `logs/agent_logs.jsonl`, métricas y trazas OTEL opcionales.
+- Evaluación: `eval/run_evals.py` con juez LLM y métricas tipo RAGAS.
+- Seguridad: cinco guardrails de entrada y uno de salida en `guardrails/`.
+- Automatización: n8n con tres workflows, sin reemplazar la orquestación de LangGraph.
 
 No existe modo demostración. Para ejecutar el agente se requiere una API key válida. Si no está configurada, el programa lo indica y termina.
 
@@ -34,11 +37,31 @@ KickoffAgent/
 │   └── memory.py           # persistencia de sesiones
 ├── observability/
 │   ├── logger.py           # registro JSONL de ejecuciones
-│   └── metrics.py          # latencia, tokens, costo y errores
+│   ├── metrics.py          # latencia, tokens, costo y errores
+│   └── telemetry.py        # trazas OTEL opcionales para Grafana LGTM
 ├── eval/
-│   └── dataset.json        # 15 casos de evaluación funcional
+│   ├── dataset.json        # 15 casos de evaluación funcional
+│   ├── run_evals.py        # juez LLM, RAGAS-style y consistencia de herramientas
+│   ├── consistencia.py     # repetición de casos y varianza
+│   └── results.json        # resultados de la última corrida
+├── guardrails/
+│   ├── guardrails.py       # 5 evaluadores de entrada + 1 de salida
+│   └── prompts.py          # prompts de los evaluadores
 ├── api/
-│   └── server.py           # FastAPI: /health, /ask, /metrics, /eval
+│   └── server.py           # FastAPI: /health, /ask, /metrics, /logs, /eval
+├── dashboard/
+│   ├── app.py              # panel Streamlit sobre el JSONL
+│   ├── docker-compose.yml  # Grafana LGTM
+│   ├── dashboards/         # panel provisionado de Grafana
+│   └── provisioning/       # datasource de Supabase Postgres
+├── integrations/
+│   └── supabase_logger.py  # carga de logs y evaluaciones por REST
+├── n8n/
+│   ├── docker-compose.yml
+│   ├── workflows/          # W1 eval loop, W2 alertas, W3 carga de logs
+│   └── README.md
+├── supabase/
+│   └── schema.sql          # tablas logs, evals y metricas
 ├── prompts/                # plantillas de diseño, no cargadas en ejecución
 │   ├── prompt_01.md
 │   ├── prompt_02.md
@@ -72,6 +95,16 @@ GROQ_API_KEY=tu_clave_gsk
 ```
 
 También se admite `OPENAI_API_KEY`. El archivo `.env` está ignorado por Git.
+
+Variables opcionales para observabilidad y automatización:
+
+```text
+PRICE_INPUT_PER_1M=0
+PRICE_OUTPUT_PER_1M=0
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+SUPABASE_URL=https://TU_PROYECTO.supabase.co
+SUPABASE_SERVICE_KEY=TU_SERVICE_ROLE_KEY
+```
 
 ## Ejecución
 
@@ -132,10 +165,57 @@ Endpoints:
 - `GET /health`: estado del agente y documentos registrados.
 - `POST /ask`: cuerpo con `pregunta` y `thread_id` opcional.
 - `GET /metrics`: ejecuciones, errores, latencia promedio y p95, rutas y herramientas más usadas.
-- `POST /eval`: ejecuta el dataset y guarda `eval/results.json`.
+- `GET /logs`: eventos JSONL para que n8n los cargue en Supabase.
+- `POST /eval`: ejecuta el dataset con LLM real y guarda `eval/results.json`.
+
+Todas las peticiones a `/ask` pasan por los guardrails antes y después del agente.
 
 ## Evaluación
 
 `eval/dataset.json` contiene 15 casos con pregunta, referencia, herramientas esperadas y fuente esperada. Cubre las categorías RAG, finanzas, persistencia, rechazo y aritmética.
+
+```bash
+python -m eval.run_evals
+python -m eval.run_evals --limite 5
+python -m eval.run_evals --caso pers_001 --fusionar
+python -m eval.consistencia
+python -m eval.consistencia --caso ari_001 --fusionar
+```
+
+Métricas calculadas:
+
+- Tool Call Accuracy: el agente invocó las herramientas esperadas.
+- Agent Goal Accuracy: un juez LLM compara la respuesta con la referencia.
+- Faithfulness y Answer Relevancy: jueces LLM sobre el contexto RAG recuperado, siguiendo la definición de RAGAS. No se instala la librería `ragas` para evitar incompatibilidades con LangChain 1.x.
+- El juez se crea en `judges/juez.py`. Usa `OPENAI_API_KEY` con `gpt-4o-mini` si está configurada; si no, usa Groq. El agente evaluado no cambia. En `results.json` queda registrado el proveedor del juez.
+- Latencia por caso, p95, tasa de error y consistencia de la tool financiera.
+
+Los reintentos con espera en `eval/run_evals.py` absorben los límites de tokens por minuto de Groq. Si un caso falla por límite ITPM u OTPM, se puede repetir solo ese caso con `--caso ID --fusionar`, sin perder el resto de la corrida. Para una corrida corta, usar `--limite 5`. El caso `pers_001` pide un dictamen breve porque un documento extenso en el historial supera el techo de 7000 tokens de entrada de Groq.
+
+En la corrida de consistencia, `fin_003` y `rag_003` completaron las cinco repeticiones con accuracy 1.0 y desviaciones de 9895 ms y 3005 ms. `ari_001` quedó limitado por la cuota diaria de Groq (TPD 200000) y se registró como anomalía de infraestructura en `eval/consistencia.json`. Mover el juez a OpenAI reduce el consumo de Groq en las evaluaciones, pero no cambia el hecho de que la prueba de consistencia llama al agente Groq directamente.
+
+## Guardrails
+
+`guardrails/guardrails.py` evalúa ofensivo, prompt injection, off topic, deshonestidad y PII antes de llamar al agente, y una validación de salida después. Las peticiones bloqueadas devuelven HTTP 400.
+
+Los evaluadores usan el mismo LLM con temperatura 0 y se ejecutan en paralelo. Si el juez no responde, el guardrail no bloquea y el evento debe revisarse en el log. En producción conviene cambiar ese comportamiento a fail closed.
+
+## Dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+Alternativa con Grafana LGTM y Supabase en `dashboard/docker-compose.yml`. Las instrucciones están en `dashboard/README.md`.
+
+## Supabase y n8n
+
+Ejecutar `supabase/schema.sql` en el proyecto de Supabase y definir `SUPABASE_URL` y `SUPABASE_SERVICE_KEY`. Luego levantar n8n con `n8n/docker-compose.yml` e importar los tres workflows desde `n8n/workflows/`.
+
+- W1: evaluación periódica y carga en `evals`.
+- W2: alertas por tasa de error y latencia p95.
+- W3: carga de logs en `logs`.
+
+n8n no es el agente ni el orquestador. LangGraph decide el razonamiento; n8n automatiza el ciclo de observabilidad.
 
 La evidencia visual de ejecución se encuentra en `tests/Evidencia_Tests.md` y las capturas `test_01.png` a `test_04-2.png`.

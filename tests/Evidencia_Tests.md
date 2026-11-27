@@ -106,3 +106,18 @@ Para reproducir las pruebas automáticas e ingresar a la consola interactiva:
 ```bash
 python src/kickoff_agent.py
 ```
+
+---
+
+## Evidencia de observabilidad EA3
+
+| Artefacto | Cómo generarlo | Qué demuestra |
+|---|---|---|
+| `logs/agent_logs.jsonl` | cualquier consulta real | trazabilidad por ejecución con herramientas, latencia y errores |
+| `eval/results.json` | `python -m eval.run_evals` | precisión, consistencia y latencia sobre 15 casos |
+| `eval/consistencia.json` | `python -m eval.consistencia` | varianza al repetir 3 casos cinco veces |
+| Dashboard Streamlit | `streamlit run dashboard/app.py` | visualización de métricas y filtro por ruta |
+| Dashboard Grafana | `docker compose -f dashboard/docker-compose.yml up -d` | panel provisionado sobre Supabase |
+| n8n W1, W2, W3 | importar `n8n/workflows/*.json` | automatización de eval, alertas y carga de logs |
+
+Los evaluadores usan LLM real. El agente no tiene modo demostración.
