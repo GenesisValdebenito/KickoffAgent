@@ -4,17 +4,17 @@ Endpoints:
     GET  /health
     POST /ask
     GET  /metrics
+    GET  /logs
     POST /eval
 
 Ejecución:
     uvicorn api.server:app --reload --host 127.0.0.1 --port 8000
 """
 
-import json
 import sys
 import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -29,9 +29,11 @@ from src.kickoff_agent import (  # noqa: E402
 )
 from observability.logger import leer_logs  # noqa: E402
 from observability.metrics import summarize_usage  # noqa: E402
-
-DATASET_PATH = BASE_DIR / "eval" / "dataset.json"
-RESULTS_PATH = BASE_DIR / "eval" / "results.json"
+from guardrails.guardrails import (  # noqa: E402
+    entrada_bloqueada,
+    validar_entrada,
+    validar_salida,
+)
 
 app = FastAPI(
     title="KickoffAgent API",
@@ -49,6 +51,8 @@ class AskResponse(BaseModel):
     respuesta: str
     thread_id: str
     herramientas: List[str]
+    guardrails_entrada: Dict[str, bool]
+    guardrail_salida: bool
 
 
 def _extraer_herramientas(resultado: dict) -> List[str]:
@@ -79,15 +83,25 @@ def ask(solicitud: AskRequest):
     if agent_executor is None:
         raise HTTPException(status_code=503, detail="Agente sin inicializar. Configura una API key válida.")
 
+    guardrails_entrada = validar_entrada(solicitud.pregunta)
+    if entrada_bloqueada(guardrails_entrada):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solicitud bloqueada por guardrails: {guardrails_entrada}",
+        )
+
     thread_id = solicitud.thread_id or f"api_{uuid.uuid4().hex[:8]}"
     resultado = invocar_agente_seguro(
         {"messages": [("user", solicitud.pregunta)]},
         config={"configurable": {"thread_id": thread_id}},
     )
+    respuesta = resultado["messages"][-1].content
     return {
-        "respuesta": resultado["messages"][-1].content,
+        "respuesta": respuesta,
         "thread_id": thread_id,
         "herramientas": _extraer_herramientas(resultado),
+        "guardrails_entrada": guardrails_entrada,
+        "guardrail_salida": validar_salida(respuesta),
     }
 
 
@@ -123,56 +137,20 @@ def metrics():
     }
 
 
+@app.get("/logs")
+def logs(limite: int = 1000):
+    """Devuelve los eventos registrados para que n8n los cargue en Supabase."""
+    return {"total": len(leer_logs(limite=limite)), "eventos": leer_logs(limite=limite)}
+
+
 @app.post("/eval")
 def evaluar(limite: int = 15):
     if agent_executor is None:
         raise HTTPException(status_code=503, detail="Agente sin inicializar. Configura una API key válida.")
 
-    if not DATASET_PATH.exists():
-        raise HTTPException(status_code=404, detail="No se encontró eval/dataset.json")
+    from eval.run_evals import ejecutar_evaluacion
 
-    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
-    casos = dataset.get("casos", [])[:limite]
-    resultados = []
-
-    for caso in casos:
-        thread_id = f"eval_{caso['id']}_{uuid.uuid4().hex[:6]}"
-        try:
-            resultado = invocar_agente_seguro(
-                {"messages": [("user", caso["pregunta"])]},
-                config={"configurable": {"thread_id": thread_id}},
-            )
-            obtenidas = _extraer_herramientas(resultado)
-            esperadas = caso.get("herramientas_esperadas", [])
-            acierto = all(h in obtenidas for h in esperadas)
-            respuesta = resultado["messages"][-1].content
-            error = None
-        except Exception as exc:
-            obtenidas = []
-            acierto = False
-            respuesta = ""
-            error = f"{type(exc).__name__}: {exc}"
-
-        resultados.append({
-            "id": caso["id"],
-            "categoria": caso.get("categoria"),
-            "herramientas_esperadas": esperadas,
-            "herramientas_obtenidas": obtenidas,
-            "tool_call_accuracy": acierto,
-            "referencia": caso.get("referencia"),
-            "respuesta": respuesta[:1000],
-            "error": error,
-        })
-
-    total = len(resultados)
-    correctos = sum(1 for r in resultados if r["tool_call_accuracy"])
-    resumen = {
-        "total_casos": total,
-        "casos_correctos": correctos,
-        "tool_call_accuracy": round(correctos / total, 4) if total else 0,
-        "resultados": resultados,
-    }
-
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS_PATH.write_text(json.dumps(resumen, ensure_ascii=False, indent=2), encoding="utf-8")
-    return resumen
+    try:
+        return ejecutar_evaluacion(limite)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
