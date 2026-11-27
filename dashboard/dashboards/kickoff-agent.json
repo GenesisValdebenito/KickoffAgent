@@ -1,0 +1,156 @@
+{
+  "uid": "kickoff-agent",
+  "title": "KickoffAgent — Observabilidad",
+  "tags": ["kickoff", "agente", "observabilidad"],
+  "timezone": "America/Santiago",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Ejecuciones totales",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp)"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Tasa de error",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FILTER (WHERE error IS NOT NULL)::numeric / nullif(count(*), 0) AS value FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp)"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.1 }] } }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Latencia p95 (ms)",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY latencia_ms) AS value FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp)"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Chunks RAG recuperados",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(sum(chunks_recuperados), 0) AS value FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp)"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Rutas ejecutadas",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ruta AS metric, count(*)::numeric AS value FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp) GROUP BY ruta ORDER BY value DESC"
+        }
+      ],
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "showValue": "always" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Herramientas invocadas",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT herramienta AS metric, count(*)::numeric AS value FROM public.logs l, jsonb_array_elements_text(l.herramientas) AS herramienta WHERE l.tipo = 'ejecucion' AND $__timeFilter(l.timestamp) GROUP BY herramienta ORDER BY value DESC"
+        }
+      ],
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "showValue": "always" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latencia promedio y p95 por ejecución",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT timestamp AS time, latencia_ms AS \"latencia_ms\" FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp) ORDER BY timestamp"
+        }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineInterpolation": "linear" } }, "overrides": [] }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Últimas ejecuciones",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 22 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT timestamp, thread_id, ruta, herramientas, chunks_recuperados, latencia_ms, error FROM public.logs WHERE tipo = 'ejecucion' AND $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+services:
+  lgtm:
+    image: grafana/otel-lgtm
+    container_name: kickoff-lgtm
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - SUPABASE_DB_HOST=${SUPABASE_DB_HOST:-db.TU_PROYECTO.supabase.co}
+      - SUPABASE_DB_PORT=${SUPABASE_DB_PORT:-6543}
+      - SUPABASE_DB_USER=${SUPABASE_DB_USER:-postgres}
+      - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD:-}
+    volumes:
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./dashboards:/var/lib/grafana/dashboards
+      - lgtm_data:/var/lib/grafana
+
+volumes:
+  lgtm_data:
