@@ -30,15 +30,13 @@ from rich.panel import Panel
 console = Console()
 
 from dotenv import load_dotenv
+import subprocess
+import time
 from typing import List, Optional, TypedDict, Annotated, Union
-import numpy_financial as npf
-from pydantic import BaseModel, Field
 
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.outputs import ChatResult, ChatGeneration
+from langchain_core.messages import SystemMessage
 
 try:
     # pyrefly: ignore [missing-import]
@@ -81,173 +79,6 @@ from src.memory import (
 
 # Cargar variables de entorno desde la raíz del proyecto
 load_dotenv(dotenv_path=ENV_PATH)
-
-# ==============================================================================
-# 1. MODELO DE DEMOSTRACIÓN OFFLINE (FALLBACK PARA EJECUCIÓN SIN API KEY)
-# ==============================================================================
-
-class MockDemoChat(BaseChatModel):
-    """Modelo determinista para demostración y testing de KickoffAgent sin requerir API Key externa.
-    Invoca las herramientas reales (ChromaDB RAG, numpy-financial y persistencia) a través de LangGraph."""
-    tools_bound: list = Field(default_factory=list)
-
-    @property
-    def _llm_type(self) -> str:
-        return "mock_demo_chat"
-
-    def bind_tools(self, tools, **kwargs):
-        return MockDemoChat(tools_bound=list(tools))
-
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        last_msg = messages[-1]
-        
-        # Si el último mensaje es el resultado de una herramienta (ToolMessage)
-        if isinstance(last_msg, ToolMessage):
-            user_msg = next((m.content for m in reversed(messages) if isinstance(m, HumanMessage)), "")
-            user_lower = user_msg.lower()
-
-            if any(w in user_lower for w in ["viable", "financiera", "inversión", "inversion", "van", "tir"]):
-                if last_msg.name == "consultar_documentacion_proyecto":
-                    ai_msg = AIMessage(
-                        content="He recuperado los datos presupuestarios del acta de reunión: Inversión inicial $12.000.000 CLP, Flujos anuales proyectados [$4.500.000, $5.000.000, $6.200.000] y Tasa de descuento 10%. Procedo a delegar el cálculo determinista en la herramienta financiera.",
-                        tool_calls=[{
-                            "name": "calcular_metricas_financieras",
-                            "args": {
-                                "inversion_inicial": 12000000.0,
-                                "flujos_caja": [4500000.0, 5000000.0, 6200000.0],
-                                "tasa_descuento": 0.10
-                            },
-                            "id": "call_fin_calc_01"
-                        }]
-                    )
-                    return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-                elif last_msg.name == "calcular_metricas_financieras":
-                    content = (
-                        "### Evaluación de Viabilidad Financiera (Cálculo Determinista con numpy-financial)\n\n"
-                        "Con base en los datos extraídos de **`[Acta_Reunion_01.pdf]`**, se han ejecutado los cálculos matemáticos deterministas:\n\n"
-                        "| Métrica Financiera | Valor Calculado | Criterio de Decisión | Dictamen |\n"
-                        "| :--- | :--- | :--- | :--- |\n"
-                        "| **Inversión Inicial** | **$12.000.000 CLP** | Presupuesto límite del acta | Base |\n"
-                        "| **VAN (NPV)** | **+$881.292,26 CLP** | VAN > 0 | ✅ Generación de valor positiva |\n"
-                        "| **TIR (IRR)** | **13.9%** | TIR > Tasa de corte (10%) | ✅ Supera rentabilidad exigida |\n"
-                        "| **ROI** | **30.83%** | ROI > 0 | ✅ Rentabilidad positiva |\n"
-                        "| **PRI (Recuperación)** | **3 periodos (años)** | PRI ≤ horizonte proyectado | ✅ Recuperación de capital al año 3 |\n\n"
-                        "#### Dictamen Técnico Formal:\n"
-                        "**PROYECTO FINANCIERAMENTE VIABLE.** El proyecto genera valor agregado y su TIR (13.9%) supera la tasa de descuento mínima exigida (10%). Se recomienda su aprobación técnica y el paso a la fase de construcción."
-                    )
-                    return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
-
-            elif any(w in user_lower for w in ["requerimiento", "funcional", "aprobado", "ieee"]):
-                content = (
-                    "### Requerimientos Funcionales y No Funcionales (Estándar IEEE 830)\n\n"
-                    "A partir de la documentación consultada en **`[Especificacion_IEEE830.pdf]`** y **`[Acta_Reunion_01.pdf]`**, se definen los siguientes requerimientos formalizados en Historias de Usuario:\n\n"
-                    "#### Historias de Usuario (Requerimientos Funcionales):\n"
-                    "- **HU-01 (RF-01 - Autenticación Segura):**\n"
-                    "  - **Como:** Usuario del sistema de gestión de inventario.\n"
-                    "  - **Quiero:** Iniciar sesión y autenticarme mediante el protocolo OAuth2.\n"
-                    "  - **Para:** Garantizar la confidencialidad, trazabilidad y seguridad de la información corporativa.\n\n"
-                    "- **HU-02 (RF-02 - Reportabilidad Exportable):**\n"
-                    "  - **Como:** Administrador o supervisor de inventario.\n"
-                    "  - **Quiero:** Generar y exportar reportes en formatos PDF y Excel en un tiempo inferior a 3 segundos.\n"
-                    "  - **Para:** Agilizar la toma de decisiones basada en datos actualizados del negocio.\n\n"
-                    "#### Requerimiento No Funcional (RNF):\n"
-                    "- **RNF-01 (Alta Disponibilidad):** El servicio debe mantener una disponibilidad continua del **99.9%** durante horario hábil comercial.\n\n"
-                    "*Fuentes de auditoría:* `[Especificacion_IEEE830.pdf]`, `[Acta_Reunion_01.pdf]`"
-                )
-                return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
-
-            elif any(w in user_lower for w in ["dictamen", "guardar", "informe", "archivo"]):
-                content = "El dictamen formal ha sido generado y guardado exitosamente en el archivo **`dictamen_kickoff.md`** dentro del directorio `output/`."
-                return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
-
-            elif last_msg.name == "consultar_documentacion_proyecto":
-                content = (
-                    "### Información recuperada del documento ingresado:\n\n"
-                    f"{last_msg.content}\n\n"
-                    "*Respuesta basada en la documentación disponible en la base de conocimiento vectorial.*"
-                )
-                return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
-
-            elif last_msg.name in ["sumar", "restar", "multiplicar", "dividir"]:
-                return ChatResult(generations=[ChatGeneration(message=AIMessage(content=f"Resultado de la operación matemática: {last_msg.content}"))])
-
-        # Si el último mensaje es una consulta de usuario (HumanMessage)
-        user_text = last_msg.content if isinstance(last_msg, HumanMessage) else str(last_msg)
-        user_lower = user_text.lower()
-
-        if any(w in user_lower for w in ["redacta", "guárdalo", "guardalo", "dictamen_kickoff.md", "informe"]):
-            ai_msg = AIMessage(
-                content="Procedo a generar el informe formal de viabilidad y guardarlo en el archivo 'dictamen_kickoff.md'.",
-                tool_calls=[{
-                    "name": "guardar_informe_kickoff",
-                    "args": {
-                        "nombre_archivo": "dictamen_kickoff.md",
-                        "contenido_markdown": (
-                            "# Dictamen Formal de Viabilidad y Formulación - KickoffAgent\n\n"
-                            "## 1. Alcance y Especificación IEEE 830\n"
-                            "- **Sistema:** Gestión de inventario web corporativo.\n"
-                            "- **Requerimientos Aprobados:** Autenticación OAuth2 (RF-01) y Exportación de reportes PDF/Excel (RF-02).\n\n"
-                            "## 2. Evaluación Financiera (numpy-financial)\n"
-                            "- **Inversión Inicial:** $12.000.000 CLP\n"
-                            "- **VAN (10%):** +$881.292,26 CLP\n"
-                            "- **TIR:** 13.9%\n"
-                            "- **ROI:** 30.83%\n"
-                            "- **PRI:** 3 periodos\n\n"
-                            "## 3. Conclusión y Recomendación Técnica\n"
-                            "Proyecto viable y rentable. Cumple estándares IEEE 830 y criterios financieros exigidos."
-                        )
-                    },
-                    "id": "call_write_01"
-                }]
-            )
-            return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-
-        elif any(w in user_lower for w in ["viable", "financiera", "inversion", "inversión", "presupuesto", "van", "tir"]):
-            ai_msg = AIMessage(
-                content="Consultando la base de conocimiento vectorial para extraer parámetros financieros del acta...",
-                tool_calls=[{
-                    "name": "consultar_documentacion_proyecto",
-                    "args": {"consulta": "presupuesto inversion flujos de caja y tasa de descuento"},
-                    "id": "call_doc_fin_01"
-                }]
-            )
-            return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-
-        elif any(w in user_lower for w in ["requerimiento", "funcional", "aprobado", "ieee", "documento", "alcance"]):
-            ai_msg = AIMessage(
-                content="Consultando los documentos del proyecto para extraer especificaciones técnicas IEEE 830...",
-                tool_calls=[{
-                    "name": "consultar_documentacion_proyecto",
-                    "args": {"consulta": "requerimientos funcionales aprobados IEEE 830"},
-                    "id": "call_doc_req_01"
-                }]
-            )
-            return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-
-        elif any(w in user_lower for w in ["cuanto es", "calcula", "suma", "resta", "multiplica", "divide"]):
-            # Detección simple para tool aritmética
-            ai_msg = AIMessage(
-                content="Ejecutando operación aritmética auxiliar...",
-                tool_calls=[{"name": "sumar", "args": {"a": 10.0, "b": 20.0}, "id": "call_arith_01"}]
-            )
-            return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-
-        elif any(w in user_lower for w in ["hola", "buenas", "saludos", "quien eres"]):
-            return ChatResult(generations=[ChatGeneration(message=AIMessage(
-                content="¡Hola! Soy **KickoffAgent**. Puedo responder preguntas sobre los documentos ingresados al sistema (especificaciones, actas, PDFs técnicos) y evaluar viabilidad financiera. ¿Qué consulta deseas realizar?"
-            ))])
-
-        else:
-            ai_msg = AIMessage(
-                content="Consultando la base documental sobre tu consulta...",
-                tool_calls=[{
-                    "name": "consultar_documentacion_proyecto",
-                    "args": {"consulta": user_text},
-                    "id": "call_doc_query_01"
-                }]
-            )
-            return ChatResult(generations=[ChatGeneration(message=ai_msg)])
-
 
 # ==============================================================================
 # 2. PIPELINE RAG (INGESTA, CHUNKING Y VECTOR STORE - MEMORIA LARGO PLAZO)
@@ -411,7 +242,7 @@ def should_continue(state: AgentState) -> str:
     return END
 
 def compilar_agente(chat_model):
-    """Compila el grafo de LangGraph con el modelo LLM especificado (Groq o MockDemoChat)."""
+    """Compila el grafo de LangGraph con el modelo LLM especificado."""
     bound_model = chat_model.bind_tools(tools)
 
     def call_model(state: AgentState) -> AgentState:
@@ -443,9 +274,9 @@ def es_api_key_valida(key: Optional[str]) -> bool:
     key_clean = key.strip()
     return (key_clean.startswith("gsk_") and len(key_clean) > 15) or (key_clean.startswith("sk-") and len(key_clean) > 20)
 
+
 def obtener_llm_activo(groq_key: Optional[str] = None):
-    """Retorna ChatGroq si hay una GROQ_API_KEY, ChatOpenAI si hay una OPENAI_API_KEY, o MockDemoChat como fallback."""
-    # 1. Prioridad principal: Groq (Modelo oficial del proyecto: qwen/qwen3.8-27b)
+    """Retorna ChatGroq o ChatOpenAI. Si no hay credenciales, lanza un error explícito."""
     g_key = groq_key or os.environ.get("GROQ_API_KEY", "").strip()
     if g_key.startswith("gsk_") and len(g_key) > 15:
         return ChatGroq(
@@ -456,8 +287,7 @@ def obtener_llm_activo(groq_key: Optional[str] = None):
             max_retries=3,
             timeout=60
         )
-    
-    # 2. Alternativa: OpenAI (si el usuario ingresó una clave sk-...)
+
     o_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not o_key and g_key.startswith("sk-"):
         o_key = g_key
@@ -475,30 +305,54 @@ def obtener_llm_activo(groq_key: Optional[str] = None):
         except Exception:
             pass
 
-    return MockDemoChat()
+    raise RuntimeError(
+        "No se detectó una API key válida. Configura GROQ_API_KEY (gsk_...) "
+        "u OPENAI_API_KEY (sk-...) en el archivo .env antes de ejecutar el agente."
+    )
 
-# Instancia global por defecto para importaciones y tests
+
+# Instancia global. Si no hay credenciales, el import no falla: el agente queda sin inicializar.
 groq_api_key = os.environ.get("GROQ_API_KEY", "").strip()
-llm = obtener_llm_activo(groq_api_key)
-llm_with_tools = llm.bind_tools(tools)
-agent_executor = compilar_agente(llm)
+try:
+    llm = obtener_llm_activo(groq_api_key)
+    llm_with_tools = llm.bind_tools(tools)
+    agent_executor = compilar_agente(llm)
+except RuntimeError:
+    llm = None
+    llm_with_tools = None
+    agent_executor = None
+
 
 def invocar_agente_seguro(messages_payload, config):
-    """Invoca el orquestador LangGraph de forma segura, con fallback a MockDemoChat si la API remota falla."""
-    global agent_executor, llm
+    """Invoca el grafo y registra la ejecución. Sin fallback a modo demostración."""
+    if agent_executor is None:
+        raise RuntimeError(
+            "El agente no está inicializado. Configura una API key válida en .env "
+            "y vuelve a ejecutar."
+        )
+
+    from observability.logger import registrar_ejecucion
+
+    inicio = time.perf_counter()
+    resultado = None
+    error = None
     try:
-        return agent_executor.invoke(messages_payload, config=config)
-    except Exception as e:
-        if not isinstance(llm, MockDemoChat):
-            console.print(f"[bold red]⚠ No fue posible consultar la API remota ({e}). Conmutando automáticamente a Modo Demostración local...[/bold red]")
-            llm = MockDemoChat()
-            agent_executor = compilar_agente(llm)
-            return agent_executor.invoke(messages_payload, config=config)
-        raise e
+        resultado = agent_executor.invoke(messages_payload, config=config)
+        return resultado
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        raise
+    finally:
+        latencia_ms = round((time.perf_counter() - inicio) * 1000, 2)
+        registrar_ejecucion(
+            thread_id=config.get("configurable", {}).get("thread_id", "sin_thread"),
+            entrada=messages_payload,
+            resultado=resultado,
+            latencia_ms=latencia_ms,
+            error=error,
+        )
 
 
-
-# ==============================================================================
 # 4. EJECUCIÓN PRINCIPAL Y MODO INTERACTIVO
 # ==============================================================================
 
@@ -507,38 +361,41 @@ if __name__ == "__main__":
     console.print(Panel("[bold cyan]KickoffAgent[/bold cyan] — Agente Inteligente de Formulación de Proyectos", border_style="cyan"))
     console.print()
 
-    # Comprobación de API Key y selección de modo
+    if "--test" in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, "-m", "pytest", "tests/", "-v"]))
+
+    # Comprobación de API Key. No existe modo demostración.
     current_key = os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
     if not es_api_key_valida(current_key):
         console.print(Panel(
-            "[bold yellow]⚠ Configuración de Conectividad con Groq / OpenAI[/bold yellow]\n\n"
-            "No se detectó una [bold cyan]GROQ_API_KEY[/bold cyan] válida (formato [bold]gsk_...[/bold]) en [cyan].env[/cyan].\n"
-            "• Para ejecutar con inferencia en vivo en la nube (modelo [bold]qwen/qwen3.8-27b[/bold]),\n"
-            "  puedes obtener tu clave gratuita en: [bold underline cyan]https://console.groq.com/keys[/bold underline cyan]\n\n"
-            "• También puedes presionar [bold green]ENTER[/bold green] para continuar en [bold green]Modo Demostración Determinista[/bold green],\n"
-            "  donde todo el pipeline RAG (ChromaDB), cálculo financiero (numpy-financial)\n"
-            "  y persistencia documental se ejecutan al 100% en tu máquina.",
+            "[bold yellow]⚠ Configuración de conectividad[/bold yellow]\n\n"
+            "No se detectó una API key válida. Ingresa una clave de Groq (gsk_...) "
+            "o de OpenAI (sk-...) para continuar.",
             border_style="yellow"
         ))
-        
         try:
-            opcion = console.input("[bold yellow]> Ingresa tu GROQ_API_KEY (o presiona ENTER para continuar en Modo Demostración): [/bold yellow]").strip()
+            opcion = console.input("[bold yellow]> API key: [/bold yellow]").strip()
         except (KeyboardInterrupt, EOFError):
             opcion = ""
 
-        if es_api_key_valida(opcion):
-            if opcion.startswith("gsk_"):
-                ENV_PATH.write_text(f"GROQ_API_KEY={opcion}\n", encoding="utf-8")
-                os.environ["GROQ_API_KEY"] = opcion
-            else:
-                ENV_PATH.write_text(f"OPENAI_API_KEY={opcion}\n", encoding="utf-8")
-                os.environ["OPENAI_API_KEY"] = opcion
-            llm = obtener_llm_activo(opcion)
-            agent_executor = compilar_agente(llm)
-            console.print("[bold green]✓ Clave API configurada y guardada en .env exitosamente.[/bold green]\n")
+        if not es_api_key_valida(opcion):
+            console.print("[bold red]✗ No se puede iniciar el agente sin una API key válida.[/bold red]")
+            raise SystemExit(1)
+
+        if opcion.startswith("gsk_"):
+            ENV_PATH.write_text(f"GROQ_API_KEY={opcion}\n", encoding="utf-8")
+            os.environ["GROQ_API_KEY"] = opcion
         else:
-            console.print("[bold green]✓ Iniciando en Modo Demostración Determinista (RAG + Tools 100% operativas).[/bold green]\n")
+            ENV_PATH.write_text(f"OPENAI_API_KEY={opcion}\n", encoding="utf-8")
+            os.environ["OPENAI_API_KEY"] = opcion
+
+        llm = obtener_llm_activo(opcion)
+        agent_executor = compilar_agente(llm)
+        console.print("[bold green]✓ Clave API configurada y guardada en .env.[/bold green]\n")
     else:
+        if agent_executor is None:
+            llm = obtener_llm_activo(current_key)
+            agent_executor = compilar_agente(llm)
         nombre_modelo = getattr(llm, "model_name", "qwen/qwen3.8-27b")
         console.print(f"[bold green]✓ Conexión activa con el proveedor LLM (Modelo: {nombre_modelo}).[/bold green]\n")
 
@@ -632,11 +489,6 @@ if __name__ == "__main__":
         resp_write_text = res_write["messages"][-1].content
         console.print(Panel(Markdown(resp_write_text), title="TEST 3 — Memoria y Escritura en Disco", border_style="magenta"))
         console.print()
-
-    # Verificar si se solicita ejecutar pruebas vía argumento de línea de comandos
-    if "--test" in sys.argv:
-        ejecutar_bateria_pruebas(session_config)
-        sys.exit(0)
 
     # ==============================================================================
     # GESTIÓN E INGESTA DINÁMICA DE DOCUMENTO
