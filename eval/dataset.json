@@ -1,0 +1,126 @@
+{
+  "version": "1.0",
+  "descripcion": "Dataset de evaluación funcional de KickoffAgent. Las referencias se basan en los documentos precargados Acta_Reunion_01.pdf y Especificacion_IEEE830.pdf.",
+  "casos": [
+    {
+      "id": "rag_001",
+      "categoria": "rag",
+      "pregunta": "¿Cuáles son los requerimientos funcionales aprobados y en qué documento se basan?",
+      "referencia": "RF-01 autenticación OAuth2 y RF-02 reportes PDF y Excel en menos de 3 segundos, según Especificacion_IEEE830.pdf.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": "Especificacion_IEEE830.pdf"
+    },
+    {
+      "id": "rag_002",
+      "categoria": "rag",
+      "pregunta": "¿Qué requerimiento no funcional define la disponibilidad del sistema?",
+      "referencia": "RNF-01 exige disponibilidad del 99.9% en horario hábil, según Especificacion_IEEE830.pdf.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": "Especificacion_IEEE830.pdf"
+    },
+    {
+      "id": "rag_003",
+      "categoria": "rag",
+      "pregunta": "¿Cuál es el presupuesto límite de inversión inicial del proyecto?",
+      "referencia": "El acta define un límite de inversión inicial de $12.000.000 CLP.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": "Acta_Reunion_01.pdf"
+    },
+    {
+      "id": "rag_004",
+      "categoria": "rag",
+      "pregunta": "¿Cuáles son los flujos de caja proyectados en el acta?",
+      "referencia": "Año 1 $4.500.000, Año 2 $5.000.000 y Año 3 $6.200.000 CLP.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": "Acta_Reunion_01.pdf"
+    },
+    {
+      "id": "rag_005",
+      "categoria": "rag",
+      "pregunta": "¿Qué tasa de descuento exige la gerencia?",
+      "referencia": "La tasa de descuento exigida es 10%.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": "Acta_Reunion_01.pdf"
+    },
+    {
+      "id": "fin_001",
+      "categoria": "finanzas",
+      "pregunta": "Revisa los documentos del proyecto, busca los datos de inversión y evalúa si es viable financieramente.",
+      "referencia": "VAN +$881.292,26, TIR 13.9%, ROI 30.83%, PRI 3 periodos. Proyecto viable.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto", "calcular_metricas_financieras"],
+      "debe_citar": "Acta_Reunion_01.pdf"
+    },
+    {
+      "id": "fin_002",
+      "categoria": "finanzas",
+      "pregunta": "¿Es viable invertir 10.000.000 con flujos de 1.000.000 por periodo y tasa de 15%?",
+      "referencia": "VAN negativo, el dictamen debe indicar que el proyecto no es viable según criterio de VAN.",
+      "herramientas_esperadas": ["calcular_metricas_financieras"],
+      "debe_citar": ""
+    },
+    {
+      "id": "fin_003",
+      "categoria": "finanzas",
+      "pregunta": "Calcula el VAN con una inversión de 12.000.000, flujos de 4.500.000, 5.000.000 y 6.200.000, y tasa de 10%.",
+      "referencia": "VAN 881292.26.",
+      "herramientas_esperadas": ["calcular_metricas_financieras"],
+      "debe_citar": ""
+    },
+    {
+      "id": "fin_004",
+      "categoria": "finanzas",
+      "pregunta": "¿Cuál es el periodo de recuperación de la inversión del proyecto del acta?",
+      "referencia": "El periodo de recuperación es 3 periodos.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto", "calcular_metricas_financieras"],
+      "debe_citar": "Acta_Reunion_01.pdf"
+    },
+    {
+      "id": "pers_001",
+      "categoria": "persistencia",
+      "pregunta": "Redacta un dictamen formal y guárdalo en un archivo llamado dictamen_kickoff.md.",
+      "referencia": "Debe invocar guardar_informe_kickoff y confirmar la ruta en output/.",
+      "herramientas_esperadas": ["guardar_informe_kickoff"],
+      "debe_citar": ""
+    },
+    {
+      "id": "pers_002",
+      "categoria": "persistencia",
+      "pregunta": "Exporta un resumen de la conversación actual.",
+      "referencia": "Debe invocar exportar_resumen_sesion.",
+      "herramientas_esperadas": ["exportar_resumen_sesion"],
+      "debe_citar": ""
+    },
+    {
+      "id": "rech_001",
+      "categoria": "rechazo",
+      "pregunta": "¿Cuál es el presupuesto de marketing para redes sociales?",
+      "referencia": "El agente debe indicar que no hay información sobre ese tema en los documentos.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": ""
+    },
+    {
+      "id": "rech_002",
+      "categoria": "rechazo",
+      "pregunta": "¿Quién ganó la final de la Copa América 2024?",
+      "referencia": "El agente debe rechazar la pregunta por estar fuera del dominio de los documentos.",
+      "herramientas_esperadas": ["consultar_documentacion_proyecto"],
+      "debe_citar": ""
+    },
+    {
+      "id": "ari_001",
+      "categoria": "aritmetica",
+      "pregunta": "¿Cuánto es 15 más 25?",
+      "referencia": "40.",
+      "herramientas_esperadas": ["sumar"],
+      "debe_citar": ""
+    },
+    {
+      "id": "ari_002",
+      "categoria": "aritmetica",
+      "pregunta": "Divide 50 entre 2.",
+      "referencia": "25.",
+      "herramientas_esperadas": ["dividir"],
+      "debe_citar": ""
+    }
+  ]
+}
