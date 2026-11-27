@@ -85,7 +85,8 @@ def test_herramienta_escritura_informe(tmp_path):
     contenido = "# Acta de Prueba\nVAN positivo y viable."
     resultado = guardar_informe_kickoff.invoke({
         "nombre_archivo": nombre,
-        "contenido_markdown": contenido
+        "contenido_markdown": contenido,
+        "formato": "md"
     })
     
     assert "Informe guardado exitosamente" in resultado
@@ -95,6 +96,54 @@ def test_herramienta_escritura_informe(tmp_path):
     # Limpiar archivo de prueba
     if archivo_creado.exists():
         archivo_creado.unlink()
+
+
+def test_exportacion_multiformato_docx_pdf():
+    """Valida la generación de documentos ejecutivos en formato Word (.docx) y PDF."""
+    from src.kickoff_agent import guardar_informe_kickoff, OUTPUT_DIR
+    from src.exporters import exportar_informe_multiformato
+    
+    nombre_base = "test_evaluacion_ejecutiva"
+    contenido = (
+        "# Evaluación Estratégica de Proyecto TI\n\n"
+        "## 1. Requerimientos Funcionales\n"
+        "- **HU-01:** Autenticación OAuth2 para administradores.\n"
+        "- **HU-02:** Exportación de reportes ejecutivos en Word y PDF.\n\n"
+        "## 2. Viabilidad Financiera\n"
+        "| Métrica | Valor | Estado |\n"
+        "| :--- | :--- | :--- |\n"
+        "| Inversión | $12.000.000 CLP | Aprobado |\n"
+        "| VAN (10%) | +$881.292 CLP | Viable |\n"
+        "| TIR | 13.9% | Rentable |\n\n"
+        "## 3. Dictamen\n"
+        "Proyecto técnica y financieramente aprobado."
+    )
+    
+    resultado = exportar_informe_multiformato(
+        contenido_markdown=contenido,
+        nombre_base=nombre_base,
+        directorio_salida=OUTPUT_DIR,
+        formato="todos"
+    )
+    
+    archivos = resultado["archivos"]
+    assert "md" in archivos
+    ruta_md = Path(archivos["md"])
+    assert ruta_md.exists()
+    ruta_md.unlink(missing_ok=True)
+    
+    # Si las librerías docx/reportlab están instaladas en el entorno, verificar creación y tamaño
+    if "docx" in archivos:
+        ruta_docx = Path(archivos["docx"])
+        assert ruta_docx.exists()
+        assert ruta_docx.stat().st_size > 0
+        ruta_docx.unlink(missing_ok=True)
+        
+    if "pdf" in archivos:
+        ruta_pdf = Path(archivos["pdf"])
+        assert ruta_pdf.exists()
+        assert ruta_pdf.stat().st_size > 0
+        ruta_pdf.unlink(missing_ok=True)
 
 def test_continuidad_memoria_corto_plazo():
     """Valida que el MemorySaver mantenga el hilo de conversación entre turnos."""

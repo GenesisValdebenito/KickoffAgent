@@ -26,12 +26,20 @@ El proyecto se desarrolló para la asignatura Ingeniería de Soluciones con Inte
 
 No existe modo demostración. Para ejecutar el agente se requiere una API key válida. Si no está configurada, el programa lo indica y termina.
 
+3. **Exportación Ejecutiva a Word (.docx) y PDF:**
+   - Convierte los dictámenes, actas y requerimientos en documentos ejecutivos corporativos en formatos **Word (`.docx`)** y **PDF (`.pdf`)**.
+   - Estiliza automáticamente tablas financieras, encabezados, numeración de páginas y metadatos sin depender de software externo.
+
+4. **Orquestación de Agentes con LangGraph:**
+   - Toma de decisiones autónoma: El modelo LLM decide, basado en la consulta del usuario, si debe invocar la búsqueda documental (RAG), la calculadora financiera o la exportación a archivos, manteniendo el contexto de la conversación.
+
 ## Estructura real del proyecto
 
 ```text
 KickoffAgent/
 ├── src/
 │   ├── kickoff_agent.py    # grafo, RAG, LLM y consola interactiva
+│   ├── exporters.py
 │   ├── tools.py            # herramientas del agente
 │   ├── prompts.py          # prompt del sistema usado por el grafo
 │   └── memory.py           # persistencia de sesiones
@@ -62,14 +70,27 @@ KickoffAgent/
 │   └── README.md
 ├── supabase/
 │   └── schema.sql          # tablas logs, evals y metricas
-├── prompts/                # plantillas de diseño, no cargadas en ejecución
+├── prompts/
+│   ├── README.md
+│   ├── 00_levantamiento_foda_pestel.md
+│   ├── 01_extraccion_rf_rnf.md
+│   ├── 02_generacion_backlog.md
+│   ├── 03_rag_respuesta.md
 │   ├── prompt_01.md
 │   ├── prompt_02.md
 │   ├── prompt_03.md
 │   ├── prompt_04.md
 │   └── prompt_05.md
-├── docs/                   # informes y diagramas
-├── tests/                  # pytest y capturas de evidencia
+├── docs/
+│   ├── README.md
+│   ├── informe_tecnico.docx
+│   ├── evidencia_ejecucion.md
+│   ├── 01_arquitectura_kickoffagent.drawio
+│   ├── 02_flujo_kickoffagent.drawio
+│   └── ...                 # informes y diagramas
+├── tests/
+│   ├── README.md
+│   └── ...                 # pytest y capturas de evidencia
 ├── logs/                   # registros generados en ejecución
 ├── sessions/               # sesiones persistidas
 ├── output/                 # informes generados por el agente
@@ -119,6 +140,16 @@ Indexar un documento al iniciar:
 ```bash
 python src/kickoff_agent.py "docs/Informe_Tecnico_KickoffAgent.pdf"
 ```
+
+#### Comandos interactivos en la sesión:
+- **Hacer cualquier pregunta:** Escribe libremente tu consulta (ej. *"¿De qué trata este documento?"*, *"¿Cuáles son los requerimientos aprobados?"*, *"¿Es viable financieramente?"*).
+- **Exportación ejecutiva a Word y PDF:** Pide al agente *"Exporta el informe a Word"*, *"Genera el dictamen en PDF"* o *"Guarda el acta en todos los formatos"* para obtener documentos corporativos con tablas y estilos ejecutivos en la carpeta `output/`.
+- `/cargar <ruta>`: Carga e indexa un nuevo documento en la base de conocimiento sin reiniciar.
+- `/documentos`: Consulta qué archivos están actualmente indexados en ChromaDB.
+- `/limpiar`: Reinicia el hilo de memoria conversacional para comenzar un tema nuevo.
+- `/test`: Ejecuta las pruebas automatizadas de viabilidad financiera y RAG.
+- `/ayuda`: Muestra la lista de comandos disponibles.
+- `salir`: Finaliza la sesión.
 
 Ejecutar pruebas unitarias:
 
